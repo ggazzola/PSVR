@@ -168,7 +168,7 @@ if(F){
 
 
 save.image(file=paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, ".RData", sep=""))
-cat(paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "done\n")
+cat(paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "done\n"))
 }
 }
 }
