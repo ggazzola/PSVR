@@ -1,4 +1,7 @@
 PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsilonUncertain, uncertaintySpecialTreatment=T, ...){
+	# Creates SVR model object for Gurobi
+	# Equivalent to PolytopeSVRNoUncertainSpecialTreatment if uncertaintySpecialTreatment=F, 
+	#	provided Ccertain =C and epsilonCertain=epsilon
 	#polyList: a list of n lists, one for each training point
 	# polyList[[i]]$A and polyList[[i]]$a are the lhs and rhs of the inequalities defining the uncertainty on the i-th point
 	# 	ACROSS ALL p+1 VARIABLES
@@ -115,7 +118,7 @@ PolytopeSVRNoUncertainSpecialTreatment = function(polyList, C = 10, epsilon = 0)
 	stopifnot(is.numeric(C) & length(C)==1)
 
 	totNumRowA = 0
-	pPlusOne = ncol(polyList[[i]]$A)
+	pPlusOne = ncol(polyList[[1]]$A)
 	p = pPlusOne-1	
 	wBlock = rbind(matrix(0, nrow=2, ncol=p), diag(-1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p), diag(1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p)) 
 	wZeroBlock = matrix(c(1, -1, rep(0, pPlusOne*2)), ncol=1)
