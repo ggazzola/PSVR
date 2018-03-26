@@ -9,7 +9,7 @@ source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
 #source("../Volume.R")
 
-seed=1
+#seed=1
 
 numFolds = 2
 scaleData = T
@@ -60,15 +60,14 @@ if(T){
 GenerateData()
 MultiplyImpute()
 
-datOrig =  doDataSplitOutOuter[[1]]$inDat$original 
 datMiss = doDataSplitOutOuter[[1]]$inDat$missing
 datImput = doDataSplitOutOuter[[1]]$inDat$imputed
 
 
-#imputDatList, medianImputDat, pcProp, scaleData, maxUncertainDims, doMedian
+#imputDatList, medianImputDat, quantOrSdProp, scaleData, maxUncertainDims, doMedian
 
 polyList = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
-	pcProp=1, scaleData=T, maxUncertainDims, doMedian=F, doNoMiss=F) 
+	quantOrSdProp=1, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=F, doNoMiss=F, doSquarebbSd=T, doSquarebbQuant=F) 
 
 parList = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=T)
 

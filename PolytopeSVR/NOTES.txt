@@ -1,6 +1,6 @@
 Univariate-box benchmark:
 
--- Check out publication!!!!
+- validation/testing predictions should be based not on median multiple imputation, but on median (equivalently, mean) interval imputation.
 - Use box constraint function
 - Need to have extra function to calculate delta via stddev
 - SVR model built with no special treatment of uncertain variables

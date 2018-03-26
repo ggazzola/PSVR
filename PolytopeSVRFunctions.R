@@ -198,6 +198,7 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 
 	imputDatList = list()
 	
+	
 	if(!any(is.na(missDat))){
 		cat("Warning: no missing data. Using multiple copies of the data as 'multiple imputations'\n")
 		imputDatList[[j]] = as.matrix(missDat[1:n,]) # the [1:n,] is because of the rbind to missDat above
@@ -228,7 +229,6 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 DoMultipleImputationFolds = function(doMissOut, method, maxIter, numImput){
 	#returns list of multiple imputations and corresponding median imputation
 	# of each training/testing partition of data, assuming it includes missing data
-	
 	#require(mice)
 	stopifnot(is.character(method))
 	stopifnot(maxIter>1)
@@ -255,11 +255,12 @@ DoMultipleImputationFolds = function(doMissOut, method, maxIter, numImput){
 
 #	doMultipleImputationFoldsOut = DoMultipleImputationFolds(doMissFoldOut, method="pmm", maxIter=2, numImput=4)
 
-DoPolyList = function(missDat, imputDatList, medianImputDat, pcProp, scaleData, maxUncertainDims, doMedian, doNoMiss){
+DoPolyList = function(missDat, imputDatList, medianImputDat, quantOrSdProp, scaleData, maxUncertainDims, 
+	doMedian, doNoMiss, doSquarebbSd, doSquarebbQuant){
 	# calculates Pc bounding box, and the corresponding uncertainty value, around data with 
 	# missing values defined by missDat
 	# and its corresponding multiple imputation matrix list
-	# pcProp is the proportion of data to consider around the median in the 
+	# quantOrSdProp is the proportion of data to consider around the median in the 
 	# pc space
 	# scaleData, if TRUE, all data is scaled to mean and std of meanImputDat
 	# if missDat has no missing points, then imputDatList is irrelevant
@@ -270,10 +271,13 @@ DoPolyList = function(missDat, imputDatList, medianImputDat, pcProp, scaleData, 
 	#	this approach is therefore equivalent to complete-case analysis SVR
 	stopifnot(is.matrix(medianImputDat) | is.data.frame(medianImputDat))
 	stopifnot(is.matrix(missDat) | is.data.frame(missDat))
-	stopifnot(is.logical(doMedian)& is.logical(doNoMiss))
+	stopifnot(is.logical(doMedian)& is.logical(doNoMiss) &is.logical(doSquarebbSd) & is.logical(doSquarebbQuant))
 	
-	if(doMedian & doNoMiss)
-		stop("doMedian and doMiss cannot be both TRUE\n")
+	sumAltMethods = doMedian+ doNoMiss+ doSquarebbSd +doSquarebbQuant
+	doOrientedbb = sumAltMethods==0
+	
+	if(sumAltMethods>1)
+		stop("Only one between doMedian,  doMiss, doSquarebbSd, and doSquarebbQuant can be TRUE\n")
 	
 	stopifnot(all(dim(medianImputDat)==dim(missDat)))
 	stopifnot("Y"%in%colnames(missDat))
@@ -281,84 +285,134 @@ DoPolyList = function(missDat, imputDatList, medianImputDat, pcProp, scaleData, 
 	
 	if(doMedian){
 		missDat = medianImputDat
-		imputDatList = pcProp = "irrelevantForDoMedian"
-	}
-	
-	if(doNoMiss){
+		imputDatList = quantOrSdProp = "irrelevantForDoMedian"
+	} else if(doNoMiss){
 		noMissIdx = which(apply(missDat, 1, function(x){all(!is.na(x))}))
 		if(length(noMissIdx)==0)
 			stop("No complete observations available in the data\n")
 		cat(round(length(noMissIdx)/nrow(missDat)*100), "% of the data is complete for doNoMiss\n")
 		missDat = VectToMat(missDat[noMissIdx,])
 		medianImputDat = missDat
-		imputDatList = pcProp = "irrelevantForDoMiss"
+		imputDatList = quantOrSdProp = "irrelevantForDoMiss"
+	} else if(doOrientedbb){
+		missDatHasNAs = any(is.na(missDat))
+		if(missDatHasNAs){
+			stopifnot(is.list(imputDatList))
+			stopifnot(length(imputDatList)>1)
+			stopifnot(all(dim(medianImputDat)==dim(imputDatList[[1]])))
+		}
+		overallProjPc = list()
+		projDimHash = NULL
 	}
 	
-	
-	missDatHasNAs = any(is.na(missDat))
-	if(missDatHasNAs){
-		stopifnot(is.list(imputDatList))
-		stopifnot(length(imputDatList)>1)
-		stopifnot(all(dim(medianImputDat)==dim(imputDatList[[1]])))
-		stopifnot(is.numeric(pcProp))
-		stopifnot(pcProp>=0)
-		stopifnot(pcProp<=1)
-	}
-
 	stopifnot(is.matrix(missDat)| is.data.frame(missDat))
 	stopifnot(is.logical(scaleData))
-	#stopifnot(any(is.na(missDat)))
-	
+	stopifnot(is.numeric(quantOrSdProp))
+	stopifnot(quantOrSdProp>=0)
+	stopifnot(quantOrSdProp<=1)
+
 	polyList=list()
-	overallProjPc = list()
-	projDimHash = NULL
 	n = nrow(missDat)
 	pPlusOne = ncol(missDat)
 	
-	if(scaleData){
-		scaleInfo  = DoScale(medianImputDat)
-		medianImputDat = ScaleCenter(medianImputDat, scaleInfo$mean, scaleInfo$std)
-		if(missDatHasNAs){
-			for(i in 1:length(imputDatList)){
-				imputDatList[[i]] = ScaleCenter(imputDatList[[i]], scaleInfo$mean, scaleInfo$std)
+	if(scaleData){ 
+		if(doSquarebbSd|doSquarebbQuant){
+			scaleInfo = DoScale(missDat)
+			stopifnot(all(scaleInfo$std>0))
+
+		} else{
+			scaleInfo  = DoScale(medianImputDat)
+			if(doOrientedbb){
+				medianImputDat = ScaleCenter(medianImputDat, scaleInfo$mean, scaleInfo$std)
+				if(missDatHasNAs){
+					for(i in 1:length(imputDatList)){
+						imputDatList[[i]] = ScaleCenter(imputDatList[[i]], scaleInfo$mean, scaleInfo$std)
+					}
+				}
 			}
 		}
 	} 
+	
+	if(doSquarebbQuant){
+		lowerQuantile = (1-quantOrSdProp)/2
+		upperQuantile = 1-lowerQuantile
+		lowerQuantMissDat = apply(missDat, 2, quantile, probs=lowerQuantile, type=1, na.rm=T) 
+		upperQuantMissDat = apply(missDat, 2, quantile, probs=upperQuantile, type=1, na.rm=T) 
+	}
 	for(i in 1:n){
 		currPoint = missDat[i,]
 		if(any(is.na(currPoint))){
-			stopifnot(missDatHasNAs) # just for debugging
-			singleMissDatMultImput = NULL
-			for(j in 1:length(imputDatList)){
-				singleMissDatMultImput = rbind(singleMissDatMultImput, imputDatList[[j]][i,]) # stacking multiple imputations for i-th point
-			}
-			singleMissDatMultImput = as.matrix(singleMissDatMultImput)
-			if(!all(apply(singleMissDatMultImput, 2, sd)==0)){
-				# if we happen to have constant imputations, the PC calculation won't work
-				currPointConstantImput = singleMissDatMultImput[1,] # any row is ok, since they are all equal
-				#if(scaleData)
-				#	currPointConstantImput = ScaleCenter(currPointConstantImput, scaleInfo$mean, scaleInfo$std)#### WHY DOING THIS SINCE ALREADY SCALED ABOVE??? NOW COMMENTED OUT, but VERIFY
-				singleDatRes = FixedPointConstraints(currPointConstantImput) # fixed-point bounding box around constant imputation
-				currUncertainty = 0
-			} #
-			###polyBuiltFrom = singleMissDatMultImput
+			if(doOrientedbb){
+				stopifnot(missDatHasNAs) # just for debugging
+				singleMissDatMultImput = NULL
+				for(j in 1:length(imputDatList)){
+					singleMissDatMultImput = rbind(singleMissDatMultImput, imputDatList[[j]][i,]) # stacking multiple imputations for i-th point
+				}
+				singleMissDatMultImput = as.matrix(singleMissDatMultImput)
+				if(!all(apply(singleMissDatMultImput, 2, sd)==0)){
+					# if we happen to have constant imputations, the PC calculation won't work
+					currPointConstantImput = singleMissDatMultImput[1,] # any row is ok, since they are all equal
+					#if(scaleData)
+					#	currPointConstantImput = ScaleCenter(currPointConstantImput, scaleInfo$mean, scaleInfo$std)#### WHY DOING THIS SINCE ALREADY SCALED ABOVE??? NOW COMMENTED OUT, but VERIFY BUGBUGBUG
+					singleDatRes = FixedPointConstraints(currPointConstantImput) # fixed-point bounding box around constant imputation
+					currUncertainty = 0
+				} #
+				###polyBuiltFrom = singleMissDatMultImput
 
-			singleDatRes = PCConstraintsFull(dat=singleMissDatMultImput, propIn=pcProp) # extracting bounding box for i-th point's multiple imputations
-			singleDatResDimHash = PasteFast(singleDatRes$volumeDims) # this string contains the indices of the uncertain dimensions
-			if(!singleDatResDimHash%in%projDimHash){
-				projDimHash = c(projDimHash, singleDatResDimHash) # adding the string if not added before to "database" projDimHash
-				overallProjPc[[singleDatResDimHash]] = PCConstraintsFull(medianImputDat, propIn=1, projectDimsLogical = (1:pPlusOne)%in%singleDatRes$volumeDims)
-				# calculating pc bounding box on subspace defined by redDimHash (doing this only once per subset -- <= once per point)
-				# considering the median imputation of all the data; this bounding box corresponds to the 'overall uncertainty', to compare the the 
-				# individual point uncertainty
-				# note we set propIn = 1, even if imputDatList may have been calculated with propIn<1 (so that acting on the latter,
-				# actually has an effect in determining currUncertainty)
-			} 
-			currUncertainty = PcBBUncertainty(overallProjPc[[singleDatResDimHash]], singleDatRes, missDat, maxUncertainDims, propIn=pcProp) 
-			# a [0,1] uncertainty level -- note 'ALL'
+				singleDatRes = PCConstraintsFull(dat=singleMissDatMultImput, propIn=quantOrSdProp) # extracting bounding box for i-th point's multiple imputations
+				singleDatResDimHash = PasteFast(singleDatRes$volumeDims) # this string contains the indices of the uncertain dimensions
+				if(!singleDatResDimHash%in%projDimHash){
+					projDimHash = c(projDimHash, singleDatResDimHash) # adding the string if not added before to "database" projDimHash
+					overallProjPc[[singleDatResDimHash]] = PCConstraintsFull(medianImputDat, propIn=1, projectDimsLogical = (1:pPlusOne)%in%singleDatRes$volumeDims)
+					# calculating pc bounding box on subspace defined by redDimHash (doing this only once per subset -- <= once per point)
+					# considering the median imputation of all the data; this bounding box corresponds to the 'overall uncertainty', to compare the the 
+					# individual point uncertainty
+					# note we set propIn = 1, even if imputDatList may have been calculated with propIn<1 (so that acting on the latter,
+					# actually has an effect in determining currUncertainty)
+				} 
+				currUncertainty = PcBBUncertainty(overallProjPc[[singleDatResDimHash]], singleDatRes, missDat, maxUncertainDims, propIn=quantOrSdProp) 
+				# a [0,1] uncertainty level -- note 'ALL'
+			} else if(doSquarebbSd){
+				currPointMeanImput = currPoint
+				currPointMeanImput[is.na(currPoint)] = scaleInfo$mean[is.na(currPoint)]
+				sdVect = rep(0, pPlusOne)
+				if(scaleData){
+					currPointMeanImput = ScaleCenter(currPointMeanImput, scaleInfo$mean, scaleInfo$std)
+					sdVect[is.na(currPoint)] = 1
+				} else{
+					sdVect[is.na(currPoint)] = scaleInfo$std[is.na(currPoint)]
+				}
+				singleDatRes = BoxConstraints(currPointMeanImput, sdVect, quantOrSdProp)
+				currUncertainty = "irrelevantFordoSquarebbSd"
+				
+				
+			} else if(doSquarebbQuant){
+				currPointLowerQuantileImput= currPointUpperQuantileImput = currPoint
+				currPointLowerQuantileImput[is.na(currPoint)] = lowerQuantMissDat[is.na(currPoint)]
+				currPointUpperQuantileImput[is.na(currPoint)] = upperQuantMissDat[is.na(currPoint)]
+				if(scaleData){
+					currPointLowerQuantileImput = ScaleCenter(currPointLowerQuantileImput, scaleInfo$mean, scaleInfo$std)
+					currPointUpperQuantileImput = ScaleCenter(currPointUpperQuantileImput, scaleInfo$mean, scaleInfo$std)
+					#scaling currPoint is irrelevant for doSquarebbQuant
+				}
+				singleDatRes = BoxConstraintsFromUpperAndLowerBound(currPointLowerQuantileImput, currPointUpperQuantileImput)
+				currUncertainty = "irrelevantFordoSquarebbQuant"
+				
+				
+			} else{
+				stop("Should never get here")
+			}
+				
 		} else{
 			if(scaleData)
 				currPoint = ScaleCenter(currPoint, scaleInfo$mean, scaleInfo$std)
+			
+			#for(i in 1:nrow(medianImputDat)){
+			#	currRow = medianImputDat[i, ]
+			#	missingVarIdx = is.na(currRow)
+			#	currRow[missingVarIdx] = missDatMean[missingVarIdx]
+			#	medianImputDat[i, ] = currRow
+			#} #for squareBB
 			
 			###polyBuiltFrom=currPoint
 			singleDatRes = FixedPointConstraints(currPoint) # fixed-point bounding box for fully known points
@@ -369,7 +423,7 @@ DoPolyList = function(missDat, imputDatList, medianImputDat, pcProp, scaleData, 
 		###tmp$polyBuiltFrom = polyBuiltFrom
 		polyList[[i]] = tmp
 	}
-	attr(polyList, "pcProp") = pcProp
+	attr(polyList, "quantOrSdProp") = quantOrSdProp
 	
 	if(scaleData){
 		attr(polyList, "scaled") = T
@@ -380,20 +434,21 @@ DoPolyList = function(missDat, imputDatList, medianImputDat, pcProp, scaleData, 
 	return(polyList)
 }
 
-DoPolyListFolds = function(doMultipleImputationFoldsOut, pcProp, scaleData, maxUncertainDims, doMedian, doNoMiss){
+DoPolyListFolds = function(doMultipleImputationFoldsOut, quantOrSdProp, scaleData, maxUncertainDims, doMedian, doNoMiss, doSquarebbSd, doSquarebbQuant){
 	# returns polyList object (polytope representation of data) for each data point
 	# in each inDat component of doMultipleImputationFoldsOut,
 
-	stopifnot(is.logical(doMedian))
 	polyListFolds=list()
 	for(i in 1:length(doMultipleImputationFoldsOut)){
 		polyListFolds[[i]] = list()
 		stopifnot(!is.null(doMultipleImputationFoldsOut[[i]]$inDat$missing))
 		stopifnot(!is.null(doMultipleImputationFoldsOut[[i]]$inDat$imputed$imputDatList))
 		polyListFolds[[i]]$polyList = DoPolyList(missDat=doMultipleImputationFoldsOut[[i]]$inDat$missing, 
+			origDat = doMultipleImputationFoldsOut[[i]]$inDat$original,
 			imputDatList=doMultipleImputationFoldsOut[[i]]$inDat$imputed$imputDatList, 
 			medianImputDat=doMultipleImputationFoldsOut[[i]]$inDat$imputed$medianImputDat, 
-			pcProp=pcProp, scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=doMedian, doNoMiss=doNoMiss)
+			quantOrSdProp=quantOrSdProp, scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=doMedian, doNoMiss=doNoMiss, 
+				doSquarebbSd=doSquarebbSd, doSquarebbQuant=doSquarebbQuant)
 	
 		polyListFolds[[i]]$inDat= doMultipleImputationFoldsOut[[i]]$inDat
 		polyListFolds[[i]]$outDat= doMultipleImputationFoldsOut[[i]]$outDat		
@@ -401,7 +456,7 @@ DoPolyListFolds = function(doMultipleImputationFoldsOut, pcProp, scaleData, maxU
 	return(polyListFolds)	
 }
 
-#doPolyListFoldsOut = DoPolyListFolds(doMultipleImputationFoldsOut, pcProp=0.8)
+#doPolyListFoldsOut = DoPolyListFolds(doMultipleImputationFoldsOut, quantOrSdProp=0.8)
 
 
 DoParListGrid = function(parValuesList){

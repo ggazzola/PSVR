@@ -11,19 +11,26 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	
 	stopifnot(is.list(polyList))
 	stopifnot(is.numeric(epsilonCertain) & length(epsilonCertain)==1)
-	stopifnot(is.numeric(extraEpsilonUncertain) & length(extraEpsilonUncertain)==1)
-	
+		
 	stopifnot(is.numeric(Ccertain) & length(Ccertain)==1)
-	stopifnot(is.numeric(Cuncertain) & length(Cuncertain)==1)
-	uncertaintyVect = 	sapply(polyList, function(x) x$uncertainty)
-	stopifnot(is.numeric(uncertaintyVect) & min(uncertaintyVect)>=0 & max(uncertaintyVect)<=1)
-	uncertainPoints = uncertaintyVect>0
+	
+	if(uncertaintySpecialTreatment){
+		stopifnot(is.numeric(Cuncertain) & length(Cuncertain)==1)
+		stopifnot(is.numeric(extraEpsilonUncertain) & length(extraEpsilonUncertain)==1)
+		uncertaintyVect = 	sapply(polyList, function(x) x$uncertainty)
+		stopifnot(is.numeric(uncertaintyVect) & min(uncertaintyVect)>=0 & max(uncertaintyVect)<=1)
+		uncertainPoints = uncertaintyVect>0
+	}
 	n = length(polyList)
 	stopifnot(n>1)
 	costVect = rep(0, n)
-	if(uncertaintySpecialTreatment & (sum(uncertainPoints)>0)){
-		costVect[uncertainPoints] = Cuncertain*(1-uncertaintyVect[uncertainPoints])
-		costVect[!uncertainPoints] = Ccertain
+	if(uncertaintySpecialTreatment){
+		if(sum(uncertainPoints)>0){
+			costVect[uncertainPoints] = Cuncertain*(1-uncertaintyVect[uncertainPoints])
+			costVect[!uncertainPoints] = Ccertain
+		} else{
+			costVect[1:n]=Ccertain
+		}
 	} else{
 		costVect[1:n]=Ccertain
 	}
@@ -75,8 +82,9 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 		lhsMatrix[blockRows, uvBlockCol] = polyList[[i]]$uvBlock
 		
 		currEpsilon = epsilonCertain
-		if(uncertainPoints[i] & uncertaintySpecialTreatment)
-			currEpsilon = currEpsilon + extraEpsilonUncertain*uncertaintyVect[i]
+		if(uncertaintySpecialTreatment)
+			if(uncertainPoints[i])
+				currEpsilon = currEpsilon + extraEpsilonUncertain*uncertaintyVect[i]
 		
 		rhsVect = c(rhsVect, c(currEpsilon, currEpsilon, rep(0, p), -1, rep(0,p), 1))
 		

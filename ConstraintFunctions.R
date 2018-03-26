@@ -1,3 +1,31 @@
+BoxConstraintsFromUpperAndLowerBound = function(lowerBoundVect, upperBoundVect){
+	
+	stopifnot(is.vector(lowerBoundVect) & is.numeric(lowerBoundVect))
+	stopifnot(is.vector(upperBoundVect) & is.numeric(upperBoundVect))
+	stopifnot(length(upperBoundVect)==length(upperBoundVect))
+	stopifnot(all(lowerBoundVect<=upperBoundVect))
+	
+	numBoxed = sum(lowerBoundVect< upperBoundVect)
+	boxedLogical = lowerBoundVect< upperBoundVect
+	numVars = length(lowerBoundVect)
+		
+	upperRHS = upperBoundVect
+	lowerRHS = lowerBoundVect
+
+	dimLength = upperRHS - lowerRHS
+	if(numBoxed>0){
+		volumeBoxed =  prod(dimLength[boxedLogical])
+	} else{
+		volumeBoxed = 0
+	}
+	
+	lhs = rbind(diag(1, numVars, numVars), diag(-1, numVars, numVars))
+	rhs = c(-lowerRHS, upperRHS)
+	direction = c(rep("<=", length(lowerRHS)), rep("<=", length(upperRHS)))
+	res = list(lhs=lhs, rhs=rhs, dir=direction, volume = volumeBoxed, length = dimLength, numUncertain = numBoxed, volumeDims = boxedLogical)
+	return(res)
+}
+
 
 BoxConstraints = function(centerVect, halfSideVect, halfSideMultiplier) {
 	# Returns lhs matrix, rhs vector and corresponding inequality operators to define 
@@ -14,7 +42,7 @@ BoxConstraints = function(centerVect, halfSideVect, halfSideMultiplier) {
 	stopifnot(halfSideMultiplier>=0)
 	
 	numBoxed = sum(halfSideVect>0 & halfSideMultiplier>0)
-	whichBoxed = halfSideVect>0 & halfSideMultiplier>0
+	boxedLogical = halfSideVect>0 & halfSideMultiplier>0
 	numVars = length(halfSideVect)
 		
 	upperRHS = lowerRHS = centerVect
@@ -22,22 +50,16 @@ BoxConstraints = function(centerVect, halfSideVect, halfSideMultiplier) {
 	lowerRHS = lowerRHS-halfSideVect*halfSideMultiplier
 	dimLength = upperRHS - lowerRHS
 	if(numBoxed>0){
-		volumeBoxed =  prod(dimLength[whichBoxed])
+		volumeBoxed =  prod(dimLength[boxedLogical])
 	} else{
 		volumeBoxed = 0
 	}
 
-	upperLHS = lowerLHS = matrix(0, nrow=numBoxed, ncol=numVars)
-	cnt = 1
-	for(i in which(halfSideVect>0)){
-		upperLHS[cnt,i] = lowerLHS[cnt, i] = 1
-		cnt = cnt +1
-	}
+	lhs = rbind(diag(1, numVars, numVars), diag(-1, numVars, numVars))
 	
-	lhs = rbind(-lowerLHS, upperLHS) # minus sign to have all inequalities as <=
 	rhs = c(-lowerRHS, upperRHS)
 	direction = c(rep("<=", length(lowerRHS)), rep("<=", length(upperRHS)))
-	res = list(lhs=lhs, rhs=rhs, dir=direction, volume = volumeBoxed, numUncertain = numBoxed)
+	res = list(lhs=lhs, rhs=rhs, dir=direction, volume = volumeBoxed, numUncertain = numBoxed, length = dimLength, volumeDims = which(boxedLogical))
 	return(res)
 	
 }
@@ -355,10 +377,10 @@ MonteCarloPolytopeFilling = function(missingPoint, imputationMat, lhsMat, rhsVec
 		} else{
 			scaleTitle = "scale = F"
 		}
-		pcPropTitle = paste("pcProp = ", attr(doPolyListFoldsOutInner[[qualeInnerFold]]$polyList, "pcProp"))
+		quantOrSdPropTitle = paste("quantOrSdProp = ", attr(doPolyListFoldsOutInner[[qualeInnerFold]]$polyList, "quantOrSdProp"))
 		
 		
-		MonteCarloPolytopeFilling (missingPoint, imputationMat, lhsMat, rhsVect, pertN, pertExtraSize, dimToPlot, paste(pcPropTitle, scaleTitle))
+		MonteCarloPolytopeFilling (missingPoint, imputationMat, lhsMat, rhsVect, pertN, pertExtraSize, dimToPlot, paste(quantOrSdPropTitle, scaleTitle))
 
 	}		
 	
