@@ -1,4 +1,4 @@
-PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsilonUncertain, uncertaintySpecialTreatment=T, ...){
+PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsilonUncertain, uncertaintySpecialTreatment=T, twoSlacks = F, ...){
 	# Creates SVR model object for Gurobi
 	# Equivalent to PolytopeSVRNoUncertainSpecialTreatment if uncertaintySpecialTreatment=F, 
 	#	provided Ccertain =C and epsilonCertain=epsilon
@@ -13,18 +13,29 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	stopifnot(is.numeric(epsilonCertain) & length(epsilonCertain)==1)
 		
 	stopifnot(is.numeric(Ccertain) & length(Ccertain)==1)
+	stopifnot(is.logical(uncertaintySpecialTreatment) & is.logical(twoSlacks))
+	if(uncertaintySpecialTreatment)
+		stopifnot(!twoSlacks) 
 	
-	if(uncertaintySpecialTreatment){
+	if(uncertaintySpecialTreatment & !twoSlacks){
 		stopifnot(is.numeric(Cuncertain) & length(Cuncertain)==1)
 		stopifnot(is.numeric(extraEpsilonUncertain) & length(extraEpsilonUncertain)==1)
 		uncertaintyVect = 	sapply(polyList, function(x) x$uncertainty)
+		if(is.character(uncertaintyVect))
+			stop("Can't proceed with uncertaintySpecialTreatment because uncertaintyVect[1] is ", uncertaintyVect[1])
 		stopifnot(is.numeric(uncertaintyVect) & min(uncertaintyVect)>=0 & max(uncertaintyVect)<=1)
 		uncertainPoints = uncertaintyVect>0
 	}
 	n = length(polyList)
 	stopifnot(n>1)
-	costVect = rep(0, n)
-	if(uncertaintySpecialTreatment){
+	
+	if(twoSlacks){
+		costVect = rep(0, 2*n)
+	} else{
+		costVect = rep(0, n)
+	}
+	
+	if(uncertaintySpecialTreatment & !twoSlacks){
 		if(sum(uncertainPoints)>0){
 			costVect[uncertainPoints] = Cuncertain*(1-uncertaintyVect[uncertainPoints])
 			costVect[!uncertainPoints] = Ccertain
@@ -32,7 +43,11 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 			costVect[1:n]=Ccertain
 		}
 	} else{
-		costVect[1:n]=Ccertain
+		if(twoSlacks){
+			costVect[1:(2*n)]=Ccertain
+		} else{
+			costVect[1:n]=Ccertain
+		}
 	}
 	totNumRowA = 0
 	pPlusOne = ncol(polyList[[1]]$A)
@@ -57,18 +72,39 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 		polyList[[i]]$uvBlock = cbind(uBlock, vBlock)
 	}
 
-	lbVect = c(rep(-Inf, pPlusOne), rep(0, 2*totNumRowA+n))  
-
+	if(twoSlacks){
+		lbVect = c(rep(-Inf, pPlusOne), rep(0, 2*totNumRowA+2*n))  
+	} else{
+		lbVect = c(rep(-Inf, pPlusOne), rep(0, 2*totNumRowA+n))  
+	}
+	
 	blockRowSize = 2+2*pPlusOne
-	lhsMatrix = matrix(0 , nrow = n*blockRowSize, ncol = pPlusOne+2*totNumRowA+n)
+	
+	if(twoSlacks){
+		lhsMatrix = matrix(0 , nrow = n*blockRowSize, ncol = pPlusOne+2*totNumRowA+2*n)
+	} else{
+		lhsMatrix = matrix(0 , nrow = n*blockRowSize, ncol = pPlusOne+2*totNumRowA+n)
+	}
 	
 	senseVect = rep(c("<=", "<=", rep("=", pPlusOne*2)), n)
+	
 	coefVect = c(rep(0, pPlusOne+2*totNumRowA), costVect)
-	QMatrix = diag(0, pPlusOne+2*totNumRowA+n, pPlusOne+2*totNumRowA+n)
+
+	if(twoSlacks){
+		QMatrix = diag(0, pPlusOne+2*totNumRowA+2*n, pPlusOne+2*totNumRowA+2*n)
+	} else{
+		QMatrix = diag(0, pPlusOne+2*totNumRowA+n, pPlusOne+2*totNumRowA+n)
+	}	
 	QMatrix[1:p, 1:p]= diag(1, p, p)
 	startUvCol = pPlusOne+1
 
-	uIdx = vIdx = csiIdx = list() 
+	uIdx = vIdx = list() 
+	if(twoSlacks){
+		csiPlusIdx = csiMinusIdx = list()
+	} else{
+		csiIdx = list()
+	}
+	
 	rhsVect = NULL
 	for(i in 1:n){
 		startRow = (i-1)*blockRowSize+1
@@ -82,7 +118,7 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 		lhsMatrix[blockRows, uvBlockCol] = polyList[[i]]$uvBlock
 		
 		currEpsilon = epsilonCertain
-		if(uncertaintySpecialTreatment)
+		if(uncertaintySpecialTreatment & !twoSlacks)
 			if(uncertainPoints[i])
 				currEpsilon = currEpsilon + extraEpsilonUncertain*uncertaintyVect[i]
 		
@@ -90,7 +126,12 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 		
 		uIdx[[i]] = uvBlockCol[1:(numUvCol/2)]
 		vIdx[[i]] = uvBlockCol[(numUvCol/2+1):numUvCol]
-		csiIdx[[i]] = pPlusOne+2*totNumRowA + i
+		if(twoSlacks){
+			csiPlusIdx[[i]] = pPlusOne+2*totNumRowA + 2*i-1
+			csiMinusIdx[[i]] = pPlusOne+2*totNumRowA + 2*i
+		} else{
+			csiIdx[[i]] = pPlusOne+2*totNumRowA + i
+		}
 		startUvCol = startUvCol + ncol(polyList[[i]]$uvBlock)
 		lhsMatrix[blockRows, pPlusOne+2*totNumRowA+i] = epsilonColBlock
 	}
@@ -107,7 +148,12 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	varIdx$w0 = pPlusOne
 	varIdx$u = uIdx
 	varIdx$v = vIdx
-	varIdx$csi = csiIdx
+	if(twoSlacks){
+		varIdx$csiPlus = csiPlusIdx
+		varIdx$csiMinus = csiMinusIdx
+	} else{
+		varIdx$csi = csiIdx
+	}
 	model$varIdx = varIdx
 	class(model)="polytopeSVR"
 	return(model)
