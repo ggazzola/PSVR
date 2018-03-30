@@ -69,10 +69,10 @@ DoOriginalMissingDataSplit = function(doDatOut, doMissOut, numFolds){
 	for(i in 1:numFolds){
 		inIdx =  inOutFolds$train[[i]]
 		outIdx = inOutFolds$test[[i]]
-		inDatOriginal = doDatOut[inIdx,]
-		outDatOriginal = doDatOut[outIdx,]
-		inDatMissing = doMissOut[inIdx, ]
-		outDatMissing = doMissOut[outIdx, ]
+		inDatOriginal = VectToMat(doDatOut[inIdx,])
+		outDatOriginal = VectToMat(doDatOut[outIdx,])
+		inDatMissing = VectToMat(doMissOut[inIdx, ])
+		outDatMissing = VectToMat(doMissOut[outIdx, ])
 		
 		#if(scaleData){
 		#	inDat = scale(inDat)  
@@ -198,10 +198,11 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 
 	imputDatList = list()
 	
-	
 	if(!any(is.na(missDat))){
 		cat("Warning: no missing data. Using multiple copies of the data as 'multiple imputations'\n")
-		imputDatList[[j]] = as.matrix(missDat[1:n,]) # the [1:n,] is because of the rbind to missDat above
+		for(j in 1:numImput){
+			imputDatList[[j]] = as.matrix(missDat[1:n,]) # the [1:n,] is because of the rbind to missDat above
+		}
 	} else{
 		
 		multiImputDat = mice(missDat, method = method, m=numImput, maxit=maxIter, print=F) # multiple imputations
@@ -217,7 +218,6 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 		
 	}
 		
-	
 	medianImputDat = apply(simplify2array(imputDatList), 1:2, median) #1:2 --> rows and columns
 	rownames(medianImputDat) = NULL
 	

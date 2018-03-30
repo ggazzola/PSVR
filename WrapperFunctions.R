@@ -39,7 +39,7 @@ CalculateValidationErrors = function(){
 		parValuesListSquaredBB$uncertaintySpecialTreatment = F
 		doParListGridOut = DoParListGrid(parValuesList = parValuesListNoUncert)
 		quantOrSdPropValuesVect = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoMiss")
-	} else if(approach=="doSquarebbSd" | approach=="doSquarebbQuant"{
+	} else if(approach=="doSquarebbSd" | approach=="doSquarebbQuant"){
 		parValuesListSquaredBB = parValuesList
 		parValuesListSquaredBB$Cuncertain = ifelse(approach=="doSquarebbSd", "irrelevantForDoSquarebbSd", "irrelevantForDoSquarebbQuant")
 		parValuesListSquaredBB$extraEpsilonUncertain = ifelse(approach=="doSquarebbSd", "irrelevantForDoSquarebbSd", "irrelevantForDoSquarebbQuant")
@@ -123,7 +123,7 @@ CalculateTestErrors = function(){
 		currTrainPolyList = DoPolyList(missDat=currTrain, imputDatList = currTrainImput$imputDatList,
 			medianImputDat=currTrainImput$medianImputDat, quantOrSdProp=bestParList$quantOrSdProp,  
 			scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=approach=="doMedian", doNoMiss=approach=="doNoMiss",
-			doSquarebbSd=approach=="doSquarebbSd", doSquarebbQuant=approach=="doSquarebbQuant"))	
+			doSquarebbSd=approach=="doSquarebbSd", doSquarebbQuant=approach=="doSquarebbQuant")	
 		
 	
 		if(approach == "doSquarebb"){

@@ -11,7 +11,7 @@ source("../WrapperFunctions.R")
 
 #seed=1
 
-numFolds = 2
+numFolds = 5
 scaleData = T
 
 
@@ -19,15 +19,15 @@ method = "pmm"
 maxIter = 5
 numImput = 6
 
-n = 50
-p = 4
+n = 15
+p = 3
 meanVect = rep(0,p) 
 stdVect = rep(1, p)
 corVal = .5 
 theoRsq = 0.9
 
-missingVarProp = 0.25
-missingObsProp = 0.2
+missingVarProp = 1/3
+missingObsProp = 0.5
 
 trueW = 1:p
 trueW0 = p/2
@@ -69,6 +69,6 @@ datImput = doDataSplitOutOuter[[1]]$inDat$imputed
 polyList = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
 	quantOrSdProp=1, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=F, doNoMiss=F, doSquarebbSd=T, doSquarebbQuant=F) 
 
-parList = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=T)
+parList = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F) # Set to F for doSquarebb...
 
 res = DoTrainModel(polyList, parList)
