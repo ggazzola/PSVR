@@ -496,10 +496,21 @@ DoTrainModel = function(polyList, parList){
 	model <<- do.call(PolytopeSVR, parList)
 	cat("WARNING: recall that for whatever reason the code has 'model<<-'\n")
 	gurobiParams = list(LogFile="", OutputFlag=0)
-	res = gurobi(model, params=gurobiParams)
-	w = GetSolution(model, res, "w")
-	w0 = GetSolution(model, res, "w0")
-	res = list(w=w, w0=w0)
+	resGurobi <<- gurobi(model, params=gurobiParams)
+	w = GetSolution(model, resGurobi, "w")
+	w0 = GetSolution(model, resGurobi, "w0")
+	u = GetSolution(model, resGurobi, "u")
+	v = GetSolution(model, resGurobi, "v")
+	if(is.logical(parList$twoSlacks)){
+		if(parList$twoSlacks){
+			csiPlus = GetSolution(model, resGurobi, "allCsiPlus")
+			csiMinus = GetSolution(model, resGurobi, "allCsiMinus")
+			res = list(w=w, w0=w0, u=u, v=v, csiPlus=csiPlus, csiMinus=csiMinus)
+		} else{
+			csi = GetSolution(model, resGurobi, "allCsi")
+			res = list(w=w, w0=w0, u=u, v=v, csi=csi)
+		}
+	}
 	class(res) = "PolytopeSVRWW0"
 	return(res)
 }
@@ -682,4 +693,47 @@ DoBestParList = function(doExtractErrMatOut, errMeasure){
 		 bestParListIdx = minAverageErrIdx)
 	return(res)
 }		
+
+DoMinMaxPrediction = function(polyListOutIndiv,doTrainModelOut, w=NULL, w0=NULL){
+	if(any(is.null(c(w, w0)))){
+		w=doTrainModelOut$w
+		w0=doTrainModelOut$w0
+	}
+	p=length(w)
+	stopifnot(p==ncol(polyListOutIndiv$A)-1)
+	pPlusOne = p+1
+	
+	pPlusOneCol = polyListOutIndiv$A[,pPlusOne]
+	nonZeroPlusOneCoeff = which(pPlusOneCol!=0)
+	whichIsOne = which(pPlusOneCol==1)
+	stopifnot(sum(pPlusOneCol[nonZeroPlusOneCoeff])==0)
+	stopifnot(length(nonZeroPlusOneCoeff)==2)
+	stopifnot(all(abs(pPlusOneCol[nonZeroPlusOneCoeff])==1))
+	stopifnot(sum(polyListOutIndiv$a[nonZeroPlusOneCoeff])==0)
+	
+	trueY = polyListOutIndiv$a[whichIsOne]
+	modelMinMax = list()
+	modelMinMax$A = polyListOutIndiv$A
+	modelMinMax$rhs = polyListOutIndiv$a
+	modelMinMax$sense = polyListOutIndiv$dir
+	modelMinMax$lb = rep(-Inf, p+1)
+	modelMinMax$obj = c(w,0)
+	gurobiParams = list(LogFile="", OutputFlag=0)
+	
+	resU = gurobi(modelMinMax, params=gurobiParams)
+	xU = resU$x[1:p]
+	yPredU = resU$objval + w0
+	errU = trueY - yPredU 
+	
+	modelMinMax$obj = -c(w,0)
+	resV = gurobi(modelMinMax, params=gurobiParams)
+	xV = resV$x[1:p]
+	yPredV = -resV$objval + w0
+	errV = yPredV - trueY
+	
+
+	res = list(u=list(x=xU, yPred=yPredU, err=errU), v=list(x=xV, yPred=yPredV, err=errV))
+	return(res)
+
+}
 

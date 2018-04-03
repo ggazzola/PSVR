@@ -9,7 +9,9 @@ source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
 #source("../Volume.R")
 
-#seed=1
+seed=1
+
+set.seed(seed)
 
 numFolds = 5
 scaleData = T
@@ -17,17 +19,17 @@ scaleData = T
 
 method = "pmm"
 maxIter = 5
-numImput = 6
+numImput = 11
 
-n = 15
-p = 3
+n = 50
+p = 4
 meanVect = rep(0,p) 
 stdVect = rep(1, p)
 corVal = .5 
 theoRsq = 0.9
 
-missingVarProp = 1/3
-missingObsProp = 0.5
+missingVarProp = 0.5
+missingObsProp = 0.3
 
 trueW = 1:p
 trueW0 = p/2
@@ -67,8 +69,75 @@ datImput = doDataSplitOutOuter[[1]]$inDat$imputed
 #imputDatList, medianImputDat, quantOrSdProp, scaleData, maxUncertainDims, doMedian
 
 polyList = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
-	quantOrSdProp=1, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=F, doNoMiss=F, doSquarebbSd=T, doSquarebbQuant=F) 
+	quantOrSdProp=0.1, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=F, doNoMiss=F, doSquarebbSd=F, doSquarebbQuant=F) 
+	
+polyListBak = polyList
+polyList=list()
+polyList[[1]]=polyListBak[[1]]
+res = list()
 
-parList = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F) # Set to F for doSquarebb...
+for(i in 2:28){
+polyList[[i]]=polyListBak[[i]]
 
-res = DoTrainModel(polyList, parList)
+	
+
+parListTwoSlacks = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = T) 
+resTwoSlacks = DoTrainModel(polyList, parListTwoSlacks); #print(sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus)))
+
+modelTwo=model
+resGurobiTwo = resGurobi
+
+parListOneSlack = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F) 
+resOneSlack = DoTrainModel(polyList, parListOneSlack); #print(sum(resOneSlack$csi))
+
+
+modelOne=model
+resGurobiOne = resGurobi
+
+res[[i]] =list()	
+
+res[[i]]$resTwoSlacks=resTwoSlacks
+res[[i]]$resOneSlack=resOneSlack
+res[[i]]$ErrorDiff=sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus))-sum(resOneSlack$csi) # expecting >=0
+
+
+cat(i, " has ", res[[i]]$ErrorDiff, "\n")
+}
+
+if(F){
+	i=1
+
+polyListOutIndiv = polyList[[i]]
+doTrainModelOut = resOneSlack
+DoMinMaxPrediction(polyListOutIndiv,doTrainModelOut)
+GetSolution(modelOne,resGurobiOne, "u", i)%*%polyList[[i]]$a-GetSolution(modelOne,resGurobiOne, "w0")
+GetSolution(modelOne,resGurobiOne, "v", i)%*%polyList[[i]]$a+GetSolution(modelOne,resGurobiOne, "w0")
+
+GetSolution(modelOne,resGurobiOne, "w")%*%DoMinMaxPrediction(polyListOutIndiv,doTrainModelOut)$u$x+GetSolution(modelOne,resGurobiOne, "w0")
+GetSolution(modelOne,resGurobiOne, "w")%*%DoMinMaxPrediction(polyListOutIndiv,doTrainModelOut)$v$x+GetSolution(modelOne,resGurobiOne, "w0")
+GetSolution(modelOne,resGurobiOne,"csi", i)
+
+
+doTrainModelOut = resTwoSlacks
+DoMinMaxPrediction(polyListOutIndiv,doTrainModelOut)
+GetSolution(modelTwo,resGurobiTwo, "u", i)%*%polyList[[i]]$a-GetSolution(modelTwo,resGurobiTwo, "w0")
+GetSolution(modelTwo,resGurobiTwo, "v", i)%*%polyList[[i]]$a+GetSolution(modelTwo,resGurobiTwo, "w0")
+
+GetSolution(modelTwo,resGurobiTwo, "w")%*%DoMinMaxPrediction(polyListOutIndiv,doTrainModelOut)$u$x+GetSolution(modelTwo,resGurobiTwo, "w0")
+GetSolution(modelTwo,resGurobiTwo, "w")%*%DoMinMaxPrediction(polyListOutIndiv,doTrainModelOut)$v$x+GetSolution(modelTwo,resGurobiTwo, "w0")
+GetSolution(modelTwo,resGurobiTwo,"csiPlus", i)
+GetSolution(modelTwo,resGurobiTwo,"csiMinus", i)
+}
+
+
+
+azzOne=lapply(polyList, DoMinMaxPrediction, doTrainModelOut=NULL, w=GetSolution(modelOne,resGurobiOne, "w"), w0=GetSolution(modelOne,resGurobiOne, "w0"))
+azzTwo=lapply(polyList, DoMinMaxPrediction, doTrainModelOut=NULL, w=GetSolution(modelTwo,resGurobiTwo, "w"), w0=GetSolution(modelTwo,resGurobiTwo, "w0"))
+
+unlist(lapply(azzOne, function(x) max(x$u$err, x$v$err))) - GetSolution(modelOne,resGurobiOne, "csi")
+unlist(lapply(azzTwo, function(x) max(x$u$err,0)+max(x$v$err,0))) - (GetSolution(modelTwo,resGurobiTwo, "csiPlus")+GetSolution(modelTwo,resGurobiTwo, "csiMinus"))
+
+sum(unlist(lapply(azzOne, function(x) max(x$u$err, x$v$err))))+GetSolution(modelOne,resGurobiOne, "w")%*%GetSolution(modelOne,resGurobiOne, "w")
+
+sum(unlist(lapply(azzTwo, function(x) max(x$u$err, x$v$err))))+GetSolution(modelTwo,resGurobiTwo, "w")%*%GetSolution(modelTwo,resGurobiTwo, "w") # disadvantageous to use the w,w0 solution of two-slack in one-slack formulation
+

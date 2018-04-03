@@ -52,10 +52,16 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	totNumRowA = 0
 	pPlusOne = ncol(polyList[[1]]$A)
 	p = pPlusOne-1	
-	wBlock = rbind(matrix(0, nrow=2, ncol=p), diag(-1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p), diag(1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p)) 
-	wZeroBlock = matrix(c(1, -1, rep(0, pPlusOne*2)), ncol=1)
-	epsilonColBlock = matrix(c(-1, -1, rep(0, pPlusOne*2)), ncol=1)
-
+	wBlock = rbind(matrix(0, nrow=2, ncol=p), diag(1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p), diag(-1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p)) 
+	wZeroBlock = matrix(c(-1, 1, rep(0, pPlusOne*2)), ncol=1)
+	if(twoSlacks){
+		block1 = c(-1, rep(0, 1+pPlusOne*2))
+		block2 = c(0, -1, rep(0, pPlusOne*2))
+		csiColBlock = matrix(c(block1, block2), ncol=2)
+	} else {
+		csiColBlock = matrix(c(-1, -1, rep(0, pPlusOne*2)), ncol=1)
+	}
+	
 	for(i in 1:n){
 		A = polyList[[i]]$A
 		a = polyList[[i]]$a
@@ -85,6 +91,18 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	} else{
 		lhsMatrix = matrix(0 , nrow = n*blockRowSize, ncol = pPlusOne+2*totNumRowA+n)
 	}
+	
+	uVNames = NULL
+	for(i in 1:n){
+		uVNames = c(uVNames, c(paste0(paste0(rep("u", uvSize), i), 1:uvSize), paste0(paste0(rep("v", uvSize), i), 1:uvSize)))
+	}	
+	
+	if(twoSlacks){
+		varNames = c(paste0("w", 1:p), "w0", uVNames, paste0("csiPlus", 1:n), paste0("csiMinus", 1:n))
+	} else{
+		varNames = c(paste0("w", 1:p), "w0", uVNames, paste0("csi", 1:n))
+	}
+	
 	
 	senseVect = rep(c("<=", "<=", rep("=", pPlusOne*2)), n)
 	
@@ -122,9 +140,9 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 			if(uncertainPoints[i])
 				currEpsilon = currEpsilon + extraEpsilonUncertain*uncertaintyVect[i]
 		
-		rhsVect = c(rhsVect, c(currEpsilon, currEpsilon, rep(0, p), -1, rep(0,p), 1))
+		rhsVect = c(rhsVect, c(currEpsilon, currEpsilon, rep(0, p), 1, rep(0,p), -1))
 		
-		uIdx[[i]] = uvBlockCol[1:(numUvCol/2)]
+		uIdx[[i]] = uvBlockCol[1:(numUvCol/2)] 
 		vIdx[[i]] = uvBlockCol[(numUvCol/2+1):numUvCol]
 		if(twoSlacks){
 			csiPlusIdx[[i]] = pPlusOne+2*totNumRowA + 2*i-1
@@ -133,9 +151,14 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 			csiIdx[[i]] = pPlusOne+2*totNumRowA + i
 		}
 		startUvCol = startUvCol + ncol(polyList[[i]]$uvBlock)
-		lhsMatrix[blockRows, pPlusOne+2*totNumRowA+i] = epsilonColBlock
+		if(twoSlacks){
+			lhsMatrix[blockRows, c(csiPlusIdx[[i]], csiMinusIdx[[i]])] = csiColBlock
+		} else{
+			lhsMatrix[blockRows, csiIdx[[i]]] = csiColBlock
+		}
 	}
 
+	
 	model = list()
 	model$A = lhsMatrix
 	model$rhs = rhsVect
@@ -148,13 +171,19 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	varIdx$w0 = pPlusOne
 	varIdx$u = uIdx
 	varIdx$v = vIdx
+	varIdx$allU = unlist(varIdx$u)
+	varIdx$allV = unlist(varIdx$v)
 	if(twoSlacks){
 		varIdx$csiPlus = csiPlusIdx
 		varIdx$csiMinus = csiMinusIdx
+		varIdx$allCsiPlus = unlist(varIdx$csiPlus)
+		varIdx$allCsiMinus = unlist(varIdx$csiMinus)
 	} else{
 		varIdx$csi = csiIdx
+		varIdx$allCsi = unlist(varIdx$csi)
 	}
 	model$varIdx = varIdx
+	model$varNames = varNames
 	class(model)="polytopeSVR"
 	return(model)
 }	
@@ -176,7 +205,7 @@ PolytopeSVRNoUncertainSpecialTreatment = function(polyList, C = 10, epsilon = 0)
 	p = pPlusOne-1	
 	wBlock = rbind(matrix(0, nrow=2, ncol=p), diag(-1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p), diag(1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p)) 
 	wZeroBlock = matrix(c(1, -1, rep(0, pPlusOne*2)), ncol=1)
-	epsilonColBlock = matrix(c(-1, -1, rep(0, pPlusOne*2)), ncol=1)
+	csiColBlock = matrix(c(-1, -1, rep(0, pPlusOne*2)), ncol=1)
 
 	n = length(polyList)
 	for(i in 1:n){
@@ -221,7 +250,7 @@ PolytopeSVRNoUncertainSpecialTreatment = function(polyList, C = 10, epsilon = 0)
 		vIdx[[i]] = uvBlockCol[(numUvCol/2+1):numUvCol]
 		csiIdx[[i]] = pPlusOne+2*totNumRowA + i
 		startUvCol = startUvCol + ncol(polyList[[i]]$uvBlock)
-		lhsMatrix[blockRows, pPlusOne+2*totNumRowA+i] = epsilonColBlock
+		lhsMatrix[blockRows, pPlusOne+2*totNumRowA+i] = csiColBlock
 	}
 
 	model = list()
