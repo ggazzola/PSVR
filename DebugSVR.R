@@ -21,7 +21,7 @@ method = "pmm"
 maxIter = 5
 numImput = 11
 
-n = 50
+n = 15
 p = 4
 meanVect = rep(0,p) 
 stdVect = rep(1, p)
@@ -62,8 +62,8 @@ if(T){
 GenerateData()
 MultiplyImpute()
 
-datMiss = doDataSplitOutOuter[[1]]$inDat$missing
-datImput = doDataSplitOutOuter[[1]]$inDat$imputed
+datMiss = doDataSplitOutOuter[[2]]$inDat$missing
+datImput = doDataSplitOutOuter[[2]]$inDat$imputed
 
 
 #imputDatList, medianImputDat, quantOrSdProp, scaleData, maxUncertainDims, doMedian
@@ -76,18 +76,18 @@ polyList=list()
 polyList[[1]]=polyListBak[[1]]
 res = list()
 
-for(i in 2:28){
+for(i in 2:length(polyListBak)){
 polyList[[i]]=polyListBak[[i]]
 
 	
 
-parListTwoSlacks = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = T) 
+parListTwoSlacks = list(Ccertain=1000, Cuncertain=1000, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = T) 
 resTwoSlacks = DoTrainModel(polyList, parListTwoSlacks); #print(sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus)))
 
 modelTwo=model
 resGurobiTwo = resGurobi
 
-parListOneSlack = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F) 
+parListOneSlack = list(Ccertain=1000, Cuncertain=1000, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F) 
 resOneSlack = DoTrainModel(polyList, parListOneSlack); #print(sum(resOneSlack$csi))
 
 

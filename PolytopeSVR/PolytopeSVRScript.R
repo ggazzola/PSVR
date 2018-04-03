@@ -54,7 +54,7 @@ quantOrSdPropValues = c(0.1, .25, 0.5, 1)####################
 errMeasureVect=c("mae", "rmse", "Maxae", "quantNineAe", "quantEightAe", "quantSevenAe",
 				"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert",
 				"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert") #maeCert #maeUncert, ...
-approachVect = c("doPCbb", "doMedian", "doNoMiss") #doSquarebb # ##############
+approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant") #doSquarebb # ##############
 AggregateTestError = mean
 replaceImputedWithTrueY = F
 

@@ -215,13 +215,18 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 			imputDatList[[j]] = tmpImpMat
 			row.names(imputDatList[[j]]) = NULL
 		}
-		
 	}
-		
+	meanImput = apply(missDat, 2, mean, na.rm=T)
+	meanBoxImputDat = missDat[1:n,]
+	for(i in 1:n){
+		missCol = which(is.na(meanBoxImputDat[i,]))
+		meanBoxImputDat[i,missCol] = meanImput[missCol]
+	}
+	
 	medianImputDat = apply(simplify2array(imputDatList), 1:2, median) #1:2 --> rows and columns
 	rownames(medianImputDat) = NULL
 	
-	res = list(imputDatList=imputDatList, medianImputDat = medianImputDat)
+	res = list(imputDatList=imputDatList, medianImputDat = medianImputDat, meanBoxImputDat=meanBoxImputDat)
 	return(res)
 }
 
@@ -307,10 +312,11 @@ DoPolyList = function(missDat, imputDatList, medianImputDat, quantOrSdProp, scal
 	
 	stopifnot(is.matrix(missDat)| is.data.frame(missDat))
 	stopifnot(is.logical(scaleData))
-	stopifnot(is.numeric(quantOrSdProp))
-	stopifnot(quantOrSdProp>=0)
-	stopifnot(quantOrSdProp<=1)
-
+	if(!doMedian & ! doNoMiss){
+		stopifnot(is.numeric(quantOrSdProp))
+		stopifnot(quantOrSdProp>=0)
+		stopifnot(quantOrSdProp<=1)
+	}
 	polyList=list()
 	n = nrow(missDat)
 	pPlusOne = ncol(missDat)
@@ -444,7 +450,6 @@ DoPolyListFolds = function(doMultipleImputationFoldsOut, quantOrSdProp, scaleDat
 		stopifnot(!is.null(doMultipleImputationFoldsOut[[i]]$inDat$missing))
 		stopifnot(!is.null(doMultipleImputationFoldsOut[[i]]$inDat$imputed$imputDatList))
 		polyListFolds[[i]]$polyList = DoPolyList(missDat=doMultipleImputationFoldsOut[[i]]$inDat$missing, 
-			origDat = doMultipleImputationFoldsOut[[i]]$inDat$original,
 			imputDatList=doMultipleImputationFoldsOut[[i]]$inDat$imputed$imputDatList, 
 			medianImputDat=doMultipleImputationFoldsOut[[i]]$inDat$imputed$medianImputDat, 
 			quantOrSdProp=quantOrSdProp, scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=doMedian, doNoMiss=doNoMiss, 
@@ -544,27 +549,28 @@ DoError = function(predY, trueY, missingDatOutLogical){
 	return(errList)
 }
 
-DoErrorList = function(doTrainModelOut, medianImputOut, doPolyListOut, missingDatOutLogical){
+DoErrorList = function(doTrainModelOut, medianOrMeanImputOut, doPolyListOut, missingDatOutLogical){
 	# returns list with different out-of-sample prediction error measures 
-	# using model doTrainModelOut and ***out-of sample*** data medianImputOut
+	# using model doTrainModelOut and ***out-of sample*** data medianOrMeanImputOut
 	# which is supposed to come from data with uncertainties, if any, only 
 	# on the x variables!!! (otherwise can't compute errors correctly)
 	#doPolyListOut is the polyList corresponding to doTrainModelOut; used 
-	# for scaling medianImputOut
-	# missingDatOutLogical: logical, True for rows of medianImputOut corresponding to
+	# for scaling medianOrMeanImputOut
+	# missingDatOutLogical: logical, True for rows of medianOrMeanImputOut corresponding to
 	# observations with missing values
 	#cat("Are you sure medianImput does not come from uncertain-Y out-of-sample data?\n")
 	stopifnot(class(doTrainModelOut)=="PolytopeSVRWW0")
 	stopifnot(is.list(doPolyListOut))
 	stopifnot(is.logical(missingDatOutLogical))
-	stopifnot(length(missingDatOutLogical)==nrow(medianImputOut))
+
+	stopifnot(length(missingDatOutLogical)==nrow(medianOrMeanImputOut))
 	
 	w= doTrainModelOut$w
 	w0 = doTrainModelOut$w0
-	# medianImputOut: median imputation of testing or validation data
-	stopifnot("Y"%in%colnames(medianImputOut))	
-	p = ncol(medianImputOut)-1
-	stopifnot(which(colnames(medianImputOut)=="Y")==(p+1))
+	# medianOrMeanImputOut: median/mean imputation of testing or validation data
+	stopifnot("Y"%in%colnames(medianOrMeanImputOut))	
+	p = ncol(medianOrMeanImputOut)-1
+	stopifnot(which(colnames(medianOrMeanImputOut)=="Y")==(p+1))
 	
 	if(attr(doPolyListOut, "scaled")){
 		scaleInfo = attr(doPolyListOut, "scaleInfo")
@@ -572,26 +578,27 @@ DoErrorList = function(doTrainModelOut, medianImputOut, doPolyListOut, missingDa
 		scaleInfoSdX = scaleInfo$std[1:p]
 		scaleInfoMeanY = scaleInfo$mean[p+1]
 		scaleInfoSdY = scaleInfo$std[p+1]
-		#medianImputOut = ScaleCenter(medianImputOut, scaleInfo$mean, scaleInfo$std)
-		scaledMedianImputOutX = ScaleCenter(medianImputOut[, 1:p], scaleInfoMeanX, scaleInfoSdX)		
+		#medianOrMeanImputOut = ScaleCenter(medianOrMeanImputOut, scaleInfo$mean, scaleInfo$std)
+		scaledMedianImputOutX = ScaleCenter(medianOrMeanImputOut[, 1:p], scaleInfoMeanX, scaleInfoSdX)		
 	} else{
-		scaledMedianImputOutX = medianImputOut[, 1:p]
+		scaledMedianImputOutX = medianOrMeanImputOut[, 1:p]
 		scaleInfoMeanY = 0
 		scaleInfoSdY = 1
 		#nothing=100000 # remove
 	}	
 	
-	#predY = w0+medianImputOut[, 1:p]%*%w
+	#predY = w0+medianOrMeanImputOut[, 1:p]%*%w
 	predY = (w0+scaledMedianImputOutX%*%w)*scaleInfoSdY+scaleInfoMeanY
-	trueY = medianImputOut[, p+1]
+	trueY = medianOrMeanImputOut[, p+1]
 	errList  = DoError(predY, trueY, missingDatOutLogical)
 	return(errList)
 }
 
-DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithTrueY = F){
+DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithTrueY = F, approach){
 	stopifnot(is.list(doParListGridOut))
 	stopifnot(is.list(doPolyListFoldsOut))
 	stopifnot(is.logical(replaceImputedWithTrueY))
+	stopifnot(is.character(approach))
 	
 	# for each training/testing fold, and for each parameter combination, train model on in-sample,
 	# calculate its error measure list, using the corresponding imputed out-of-sample. 
@@ -609,7 +616,12 @@ DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithT
 			currFoldPolyList = doPolyListFoldsOut[[i]]$polyList
 			parListRes[[j]]$model[[i]] = DoTrainModel(currFoldPolyList, currParList)
 			currFoldMissingDatOut = doPolyListFoldsOut[[i]]$outDat$missing
-			currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$medianImputDat
+			if(approach %in%c("doSquarebbQuant", "doSquarebbSd")){
+				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$meanBoxImputDat
+			} else{
+				cat("Assuming non-box polyhedra: extracting median of multiple imputations for out of sample predictions\n")
+				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$medianImputDat
+			}
 			currFoldMissingOutDatLogical = apply(currFoldMissingDatOut, 1, function(x){any(is.na(x))})  # T for out-of-sample points with missing values
 			stopifnot("Y"==colnames(currFoldImputedOutDat)[ncol(currFoldImputedOutDat)])
 			outDatMissingY = any(is.na(currFoldMissingDatOut[,ncol(currFoldMissingDatOut)]))

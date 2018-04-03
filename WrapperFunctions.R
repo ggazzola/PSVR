@@ -36,7 +36,8 @@ CalculateValidationErrors = function(){
 		parValuesListNoUncert = parValuesList
 		parValuesListNoUncert$Cuncertain = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoMiss")
 		parValuesListNoUncert$extraEpsilonUncertain = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoMiss")
-		parValuesListSquaredBB$uncertaintySpecialTreatment = F
+		parValuesListNoUncert$uncertaintySpecialTreatment = F
+		parValuesListNoUncert$twoSlacks=F
 		doParListGridOut = DoParListGrid(parValuesList = parValuesListNoUncert)
 		quantOrSdPropValuesVect = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoMiss")
 	} else if(approach=="doSquarebbSd" | approach=="doSquarebbQuant"){
@@ -44,9 +45,11 @@ CalculateValidationErrors = function(){
 		parValuesListSquaredBB$Cuncertain = ifelse(approach=="doSquarebbSd", "irrelevantForDoSquarebbSd", "irrelevantForDoSquarebbQuant")
 		parValuesListSquaredBB$extraEpsilonUncertain = ifelse(approach=="doSquarebbSd", "irrelevantForDoSquarebbSd", "irrelevantForDoSquarebbQuant")
 		parValuesListSquaredBB$uncertaintySpecialTreatment = F
+		parValuesListSquaredBB$twoSlacks=T
 		doParListGridOut = DoParListGrid(parValuesList = parValuesListSquaredBB)
 		quantOrSdPropValuesVect = quantOrSdPropValues
 	} else	if(approach=="doPCbb"){
+		parValuesList$twoSlacks=F
 		doParListGridOut = DoParListGrid(parValuesList = parValuesList)
 		quantOrSdPropValuesVect = quantOrSdPropValues
 	} else{
@@ -58,7 +61,8 @@ CalculateValidationErrors = function(){
 		doErrorFoldOutInnerListTmp = list()
 		for(k in 1:length(quantOrSdPropValuesVect)){
 			doPolyListFoldsOutInner = DoPolyListFolds(doMultipleImputationFoldsOut=doDataSplitOutOuter[[i]]$innerSplit, quantOrSdProp=quantOrSdPropValuesVect[k], scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=approach=="doMedian", doNoMiss=approach=="doNoMiss", doSquarebbSd=approach=="doSquarebbSd", doSquarebbQuant=approach=="doSquarebbQuant") # for each training/testing pair, adding the polytope representation of the training set
-			currPcPropErrFold = DoErrorFold(doPolyListFoldsOut=doPolyListFoldsOutInner, doParListGridOut=doParListGridOut, replaceImputedWithTrueY = replaceImputedWithTrueY)
+			currPcPropErrFold = DoErrorFold(doPolyListFoldsOut=doPolyListFoldsOutInner, doParListGridOut=doParListGridOut, 
+				replaceImputedWithTrueY = replaceImputedWithTrueY, approach=approach)
 			for(kk in 1:length(currPcPropErrFold)){
 				currPcPropErrFold[[kk]]$parList$quantOrSdProp = quantOrSdPropValues[k]
 			}
@@ -125,16 +129,19 @@ CalculateTestErrors = function(){
 			scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=approach=="doMedian", doNoMiss=approach=="doNoMiss",
 			doSquarebbSd=approach=="doSquarebbSd", doSquarebbQuant=approach=="doSquarebbQuant")	
 		
-	
-		if(approach == "doSquarebb"){
-			stop("don't know what to do\n")
+		if(approach %in% c("doSquarebbQuant", "doSquarebbSd")){
+			stopifnot(bestParList$twoSlacks==T)
+			testMeanOrMedian = currTestImput$meanBoxImputDat
+		} else{
+			stopifnot(bestParList$twoSlacks==F)
+			testMeanOrMedian = currTestImput$medianImputDat
 		}
 	
 		#if(scaleData)
 		#	currTestMedianImput = ScaleCenter(currTestMedianImput, currTrainPolyList$scaleInfo$mean, currTrainPolyList$scaleInfo$std)
 		# NO! this is taken care of by doErrorList, via attributes of currTrainPolyList
 		currModel = DoTrainModel(polyList=currTrainPolyList, parList = bestParList)
-		currError = DoErrorList(doTrainModelOut=currModel, medianImputOut=currTestImput$medianImputDat, 
+		currError = DoErrorList(doTrainModelOut=currModel, medianOrMeanImputOut=testMeanOrMedian, 
 			doPolyListOut=currTrainPolyList, missingDatOutLogical = missingTestDataLogical)[[errMeasure]]
 		errVect = c(errVect, currError)
 	}
