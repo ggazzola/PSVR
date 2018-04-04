@@ -1,15 +1,60 @@
 GenerateData = function(){
-	covMat <<- DoCovMat(p=p, corVal=corVal, stdVect=stdVect)
-	doDatOut <<- DoDat(n=n, meanVect=meanVect, covMat=covMat, trueW=trueW, trueW0=trueW0, theoRsq=theoRsq) # sample data
-	doMissOut <<- DoMiss(dat=doDatOut, missingY=missingY, missingObsProp = missingObsProp, missingVarProp=missingVarProp) # inject missing values
-	doDataSplitOutOuter = DoOriginalMissingDataSplit(doDatOut=doDatOut, doMissOut = doMissOut, numFolds=numFolds) #partition data (with missing values) in multiple training/testing sets using STRATIFIED x-fold validation -- CONSIDER NON-STRATIFIED???(same in inner below)
 	
-	for(i in 1:length(doDataSplitOutOuter)){
-		currTrain = doDataSplitOutOuter[[i]]$inDat$missing #current training portion
-		currDoDataSplitOutInner = DoOriginalMissingDataSplit(doDatOut=currTrain, doMissOut=currTrain, numFolds=numFolds) # partition training into multiple training/validation sets
-		doDataSplitOutOuter[[i]]$innerSplit = currDoDataSplitOutInner
+	success = F
+	givenUp = F
+	generateDataCnt = 1
+	while(!success){
+		covMat <<- DoCovMat(p=p, corVal=corVal, stdVect=stdVect)
+		doDatOut <<- DoDat(n=n, meanVect=meanVect, covMat=covMat, trueW=trueW, trueW0=trueW0, theoRsq=theoRsq) # sample data
+		doMissOut <<- DoMiss(dat=doDatOut, missingY=missingY, missingObsProp = missingObsProp, missingVarProp=missingVarProp) # inject missing values
+		doDataSplitOutOuter = DoOriginalMissingDataSplit(doDatOut=doDatOut, doMissOut = doMissOut, numFolds=numFolds) #partition data (with missing values) in multiple training/testing sets using STRATIFIED x-fold validation -- CONSIDER NON-STRATIFIED???(same in inner below)
+	
+		for(i in 1:length(doDataSplitOutOuter)){
+			currTrain = doDataSplitOutOuter[[i]]$inDat$missing #current training portion
+			currDoDataSplitOutInner = DoOriginalMissingDataSplit(doDatOut=currTrain, doMissOut=currTrain, numFolds=numFolds) # partition training into multiple training/validation sets
+			doDataSplitOutOuter[[i]]$innerSplit = currDoDataSplitOutInner
+		}
+		
+		doDataSplitOutOuter<<-doDataSplitOutOuter
+		HasNA = function(x, opposite=F) {if(!opposite) any(is.na(x)) else all(!is.na(x))}
+		for(i in 1:length(doDataSplitOutOuter)){
+						
+			n1=sum(apply(doDataSplitOutOuter[[i]]$inDat$missing, 1, HasNA))
+			n2=sum(apply(doDataSplitOutOuter[[i]]$outDat$missing, 1, HasNA))
+			n3=sum(apply(doDataSplitOutOuter[[i]]$inDat$missing, 1, HasNA, opposite=T))
+			n4=sum(apply(doDataSplitOutOuter[[i]]$outDat$missing, 1, HasNA, opposite=T))
+			if(n1==0 | n2==0 | n3==0 | n4==0){
+				success = F				
+				if(!rejectSilently){
+					cat("Rejecting generated data. Starting over\n")
+				}	
+				break
+			}
+			
+			for(j in 1:length(doDataSplitOutOuter[[i]]$innerSplit)){
+				n5 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$inDat$missing, 1, HasNA))
+				n6 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$outDat$missing, 1, HasNA))
+				n7 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$inDat$missing, 1, HasNA, opposite=T))
+				n8 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$outDat$missing, 1, HasNA, opposite=T))
+				if(n5==0 | n6==0 | n7==0 | n8==0){
+					if(!rejectSilently){
+						cat("Rejecting generated data. Starting over\n")
+					}	
+					break
+				}
+			}
+			if (i == length(doDataSplitOutOuter))
+				success = T
+		}
+		
+		if(!success & (generateDataCnt>maxGenerateDataAttempts)){
+			givenUp =T
+			break
+		}
+		generateDataCnt = generateDataCnt+1
+		
 	}
-	doDataSplitOutOuter<<-doDataSplitOutOuter
+	givenUp <<- givenUp
 }
 
 MultiplyImpute = function(){
@@ -62,13 +107,13 @@ CalculateValidationErrors = function(){
 		for(k in 1:length(quantOrSdPropValuesVect)){
 			doPolyListFoldsOutInner = DoPolyListFolds(doMultipleImputationFoldsOut=doDataSplitOutOuter[[i]]$innerSplit, quantOrSdProp=quantOrSdPropValuesVect[k], scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=approach=="doMedian", doNoMiss=approach=="doNoMiss", doSquarebbSd=approach=="doSquarebbSd", doSquarebbQuant=approach=="doSquarebbQuant") # for each training/testing pair, adding the polytope representation of the training set
 			currPcPropErrFold = DoErrorFold(doPolyListFoldsOut=doPolyListFoldsOutInner, doParListGridOut=doParListGridOut, 
-				replaceImputedWithTrueY = replaceImputedWithTrueY, approach=approach)
+				replaceImputedWithTrueY = replaceImputedWithTrueY, approach=approach) # this calculates errors according to all error measures (see DoError)
 			for(kk in 1:length(currPcPropErrFold)){
 				currPcPropErrFold[[kk]]$parList$quantOrSdProp = quantOrSdPropValues[k]
 			}
 			doErrorFoldOutInnerListTmp = c(doErrorFoldOutInnerListTmp, currPcPropErrFold) # doErrorFoldOutInnerListTmp[[j]] contains results for the j-th model parameter combination over each of the folds
 		}
-		doErrorFoldOutInnerList[[i]] = DoExtractErrMat(doErrorFoldOut = doErrorFoldOutInnerListTmp) # these are cross validation results for the i-th training data set (divided into numFolds training/validation); doErrorFoldOutInnerList[[i]][[j]][[k]] are the results for the j-th model parameter combination, in the k-th training/validation inner partition of the i-th outer training/testing fold
+		doErrorFoldOutInnerList[[i]] = DoExtractErrMat(doErrorFoldOut = doErrorFoldOutInnerListTmp) # these are cross validation results for the i-th training data set (divided into numFolds training/validation); doErrorFoldOutInnerList[[i]][[j]][[k]] are the results for the j-th model parameter combination, in the k-th training/validation inner partition of the i-th outer training/testing fold, with all error measures
 		cat("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "done\n")
 	}
 	doErrorFoldOutInnerList<<-doErrorFoldOutInnerList
@@ -79,7 +124,7 @@ SetUpTest = function(){
 
 	for(i in 1:length(doErrorFoldOutInnerList)){
 		getTrainResReadyForTest[[i]] = list()
-		tmp = DoBestParList(doExtractErrMatOut=doErrorFoldOutInnerList[[i]], errMeasure=errMeasure) # best parameter combination and corresponding error
+		tmp = DoBestParList(doExtractErrMatOut=doErrorFoldOutInnerList[[i]], errMeasure=errMeasure) # best parameter combination and corresponding error for a given error measure
 		getTrainResReadyForTest[[i]]$bestParList = tmp$bestParList
 		getTrainResReadyForTest[[i]]$bestAvgErr = tmp$bestParListAvgError
 	
@@ -140,7 +185,9 @@ CalculateTestErrors = function(){
 		#if(scaleData)
 		#	currTestMedianImput = ScaleCenter(currTestMedianImput, currTrainPolyList$scaleInfo$mean, currTrainPolyList$scaleInfo$std)
 		# NO! this is taken care of by doErrorList, via attributes of currTrainPolyList
-		currModel = DoTrainModel(polyList=currTrainPolyList, parList = bestParList)
+		currModel = DoTrainModel(polyList=currTrainPolyList, parList = bestParList) # for the current error measure, select  parameters
+		#	that give the best error measure results in the validation set, train model on train + valid data, and then use same measure
+		#	to calculate testing performance
 		currError = DoErrorList(doTrainModelOut=currModel, medianOrMeanImputOut=testMeanOrMedian, 
 			doPolyListOut=currTrainPolyList, missingDatOutLogical = missingTestDataLogical)[[errMeasure]]
 		errVect = c(errVect, currError)

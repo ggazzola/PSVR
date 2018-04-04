@@ -358,8 +358,12 @@ DoPolyList = function(missDat, imputDatList, medianImputDat, quantOrSdProp, scal
 				if(!all(apply(singleMissDatMultImput, 2, sd)==0)){
 					# if we happen to have constant imputations, the PC calculation won't work
 					currPointConstantImput = singleMissDatMultImput[1,] # any row is ok, since they are all equal
-					#if(scaleData)
-					#	currPointConstantImput = ScaleCenter(currPointConstantImput, scaleInfo$mean, scaleInfo$std)#### WHY DOING THIS SINCE ALREADY SCALED ABOVE??? NOW COMMENTED OUT, but VERIFY BUGBUGBUG
+					if(scaleData){ ####BUGBUGBUG comment out!!! (just trying here)
+						currPointConstantImputTotallyIrrelevantToDelete = ScaleCenter(currPointConstantImput, scaleInfo$mean, scaleInfo$std) ####BUGBUGBUG comment out!!! (just trying here) #### WHY DOING THIS SINCE ALREADY SCALED ABOVE??? NOW COMMENTED OUT, but VERIFY BUGBUGBUG
+						if(any(currPointConstantImputTotallyIrrelevantToDelete!=currPointConstantImput)){
+							stop("Mismatch -- check the code")
+						}
+					}	
 					singleDatRes = FixedPointConstraints(currPointConstantImput) # fixed-point bounding box around constant imputation
 					currUncertainty = 0
 				} #
@@ -695,7 +699,8 @@ DoBestParList = function(doExtractErrMatOut, errMeasure){
 	}
 
 	minAverageErrIdx =Which.min.tie(averageErrVect)
-	bestParList = doExtractErrMatOut[[minAverageErrIdx]]$parList
+	bestParList = doExtractErrMatOut[[minAverageErrIdx]]$parList # for a given error measure, this is the combination of parameters that give
+																# best (minimum) error performance
 	bestAvgError = averageErrVect[minAverageErrIdx]
 	if(bestAvgError==Inf){
 		cat("Warning: Error measure '", errMeasure, "' can't be calculated because there is no data for it.\n")

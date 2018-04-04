@@ -9,23 +9,21 @@ source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
 #source("../Volume.R")
 
-seed=1
 #######MissObs0.9Var0.25Cor0.9.RData: why are results not as good?
-#######noMissDat --> the best testing parameters for uncertain data should be chosen based on the best for certain predictions
+
+#######noMissDat --> the best testing parameters for uncertain data should be chosen based on the best for certain predictions: WHY? you can still calculate validation performance according to uncertain data only...
+
 #### new un-standardization of prediction working ok?
 #### are the extraEpsilonUncertain and Cuncertain parameters playing a role?
-# Miss prop should be applied separately to train/valid/test, so that they all have that proportion; else, e.g., if n is small and missingObsProp, 
-# is large can easily not have any certain observations;change back average=median to average=mean in DoExtractErrMat after that 
-# MUST DO MORE REPEATS, the results don't seem stable
+
+# Miss prop should be applied separately to train/valid/test, so that they all have that proportion; else, e.g., if n is small and missingObsProp is large can easily not have any certain observations;change back average=median to average=mean in DoExtractErrMat after that  --> too complicated, instead, just checking that there is at least one fully available obs, and one obs with some missing value in each train/valid/test
+
 # we don't need to have a model that works well on both certain and uncertain; we need one that does better at least one of those; for the other thing
 # we can use a standard model, etc.
 
+maxGenerateDataAttempts = 10
 numFolds = 5#####################
 scaleData = T
-
-for (missingVarProp in c(0.2)){#############
-for (missingObsProp in c(0.9)){############  
-
 method = "pmm"
 maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
 numImput = 50 ###############
@@ -34,51 +32,75 @@ n = 100
 p = 10
 meanVect = rep(0,p) 
 stdVect = rep(1, p)
-for(corVal in c(0.9)){ #################
 	
 trueW = 1:p
 trueW0 = p/2
-for(theoRsq in c(0.8, .95)){
 
 parValuesList = list(
-	Ccertain=10^(-1:1),  
-	Cuncertain=10^(-1:1),
-	epsilonCertain=10^(-2:1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = 10^(-2:1),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=10^(-1),   ##################
+	Cuncertain=10^(-1), ##################
+	epsilonCertain=10^(-1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = 10^(-1:0),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T
 )	
 
-
-quantOrSdPropValues = c(0.1, .25, 0.5, 1)####################
-
+missingVarPropVect = c(0.2, 0.9)########
+missingObsPropVect = c(0.2, 0.9) ############
+corValVect = c(0.9) ####################
+theoRsqVect = c(0.8) ####################
+quantOrSdPropValues = c(0.1) ####################
 errMeasureVect=c("mae", "rmse", "Maxae", "quantNineAe", "quantEightAe", "quantSevenAe",
 				"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert",
 				"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert") #maeCert #maeUncert, ...
-approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant") #doSquarebb # ##############
+approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant") 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
 
 maxUncertainDims = "all" # NULL #("all" considers the p+1 dims; NULL considers the actual max number of missing dims in all the data )
-
-
-nRep=1
+nRep=1 # # MUST DO MORE REPEATS, the results don't seem stable
 
 if(T){
 	missingY = F # Do not modify this
 }
 
 
-# should exclude the 'uncert' error measures if approach is doNoMiss?
+
+for(missingVarProp in missingVarPropVect){#############
+for(missingObsProp in missingObsPropVect){############  
+for(corVal in corValVect){ #################
+for(theoRsq in theoRsqVect){
+for(repIdx in 1:nRep){
+rejectSilently=F	
+set.seed(repIdx)
+GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
+}
+if(givenUp)
+stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
+}
+}
+}
+}
+
+cat("Data partitions containing at least one missing point and one non-missing point can be generated\n")
+cat("Proceeding to actual experiments...\n\n\n")
+	
+for(missingVarProp in missingVarPropVect){#############
+for(missingObsProp in missingObsPropVect){############  
+for(corVal in corValVect){ #################
+for(theoRsq in theoRsqVect){
 
 cat("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "starting\n")
 
 totComb = nRep*length(errMeasureVect)*length(approachVect)
 testRes = list()
 cnt = 0
+
+		
 for(repIdx in 1:nRep){
-	set.seed(seed)
 	testRes[[repIdx]]=list()
 	cat("Starting data generation, outer/inner splitting, and imputation, rep =", repIdx, "...\n")
+	rejectSilently=T	
+	set.seed(repIdx)
 	GenerateData()
 	MultiplyImpute()
 	gc()
@@ -89,7 +111,7 @@ for(repIdx in 1:nRep){
 	for(approach in approachVect){
 		cat("Starting inner cross-validation, rep =", repIdx, ", approach =", approach,  "...\n")
 		
-		CalculateValidationErrors() # all possible errors
+		CalculateValidationErrors() # errors calculated with all possible error measures
 		gc()
 		for(errMeasure in errMeasureVect){
 		
