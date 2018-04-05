@@ -49,9 +49,9 @@ missingObsPropVect = c(0.2, 0.9) ############
 corValVect = c(0.9) ####################
 theoRsqVect = c(0.8) ####################
 quantOrSdPropValues = c(0.1) ####################
-errMeasureVect=c("mae", "rmse", "Maxae", "quantNineAe", "quantEightAe", "quantSevenAe",
-				"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert",
-				"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert") #maeCert #maeUncert, ...
+errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
+				"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
+				"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
 approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant") 
 AggregateTestError = mean
 replaceImputedWithTrueY = F

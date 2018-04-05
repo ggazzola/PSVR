@@ -524,13 +524,15 @@ DoError = function(predY, trueY, missingDatOutLogical){
 	errList$quantNineAe = QuantNineAE(trueY, predY)
 	errList$quantEightAe = QuantEightAE(trueY, predY)
 	errList$quantSevenAe = QuantSevenAE(trueY, predY)
-
+	errList$cor = Cor(trueY, predY) 
+	
 	errList$maeUncert = MAE(trueY, predY, missingDatOutLogical)	
 	errList$rmseUncert = RMSE(trueY, predY, missingDatOutLogical)
 	errList$MaxaeUncert = MaxAE(trueY, predY, missingDatOutLogical)
 	errList$quantNineAeUncert = QuantNineAE(trueY, predY, missingDatOutLogical)
 	errList$quantEightAeUncert = QuantEightAE(trueY, predY, missingDatOutLogical)
 	errList$quantSevenAeUncert = QuantSevenAE(trueY, predY, missingDatOutLogical)
+	errList$corUncert = Cor(trueY, predY, missingDatOutLogical) 
 	
 	errList$maeCert = MAE(trueY, predY, !missingDatOutLogical)
 	errList$rmseCert = RMSE(trueY, predY, !missingDatOutLogical)
@@ -538,6 +540,7 @@ DoError = function(predY, trueY, missingDatOutLogical){
 	errList$quantNineAeCert = QuantNineAE(trueY, predY, !missingDatOutLogical)
 	errList$quantEightAeCert = QuantEightAE(trueY, predY, !missingDatOutLogical)
 	errList$quantSevenAeCert = QuantSevenAE(trueY, predY, !missingDatOutLogical)
+	errList$corCert = Cor(trueY, predY, !missingDatOutLogical) 
 	
 	errList$predRes = list(predY=predY, trueY=trueY, missingDatOutLogical=missingDatOutLogical)
 	return(errList)

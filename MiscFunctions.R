@@ -311,6 +311,20 @@ NoiseLevel = function(beta, CovMat, desiredRsq) {
 	return(betaNoiseVal)
 }
 
+Cor = function(trueY, predY, toInclude=rep(T, length(predY))){
+	stopifnot(length(trueY)==length(predY))
+	stopifnot(length(trueY)==length(toInclude))
+	stopifnot(is.logical(toInclude))
+	if(sum(toInclude)==0)
+		return(Inf)
+	trueY = trueY[toInclude]
+	predY = predY[toInclude]
+	res = cor(trueY,predY)
+	if(is.na(res))
+		res = 0
+	return(res)
+}
+
 MAE = function(trueY, predY, toInclude=rep(T, length(predY))) {
 	stopifnot(length(trueY)==length(predY))
 	stopifnot(length(trueY)==length(toInclude))
