@@ -20,12 +20,11 @@ BoxConstraintsFromUpperAndLowerBound = function(lowerBoundVect, upperBoundVect){
 	}
 	
 	lhs = rbind(diag(1, numVars, numVars), diag(-1, numVars, numVars))
-	rhs = c(-lowerRHS, upperRHS)
+	rhs = c(upperRHS, -lowerRHS)
 	direction = c(rep("<=", length(lowerRHS)), rep("<=", length(upperRHS)))
 	res = list(lhs=lhs, rhs=rhs, dir=direction, volume = volumeBoxed, length = dimLength, numUncertain = numBoxed, volumeDims = boxedLogical)
 	return(res)
 }
-
 
 BoxConstraints = function(centerVect, halfSideVect, halfSideMultiplier) {
 	# Returns lhs matrix, rhs vector and corresponding inequality operators to define 
@@ -57,7 +56,7 @@ BoxConstraints = function(centerVect, halfSideVect, halfSideMultiplier) {
 
 	lhs = rbind(diag(1, numVars, numVars), diag(-1, numVars, numVars))
 	
-	rhs = c(-lowerRHS, upperRHS)
+	rhs = c(upperRHS, -lowerRHS)
 	direction = c(rep("<=", length(lowerRHS)), rep("<=", length(upperRHS)))
 	res = list(lhs=lhs, rhs=rhs, dir=direction, volume = volumeBoxed, numUncertain = numBoxed, length = dimLength, volumeDims = which(boxedLogical))
 	return(res)

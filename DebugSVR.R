@@ -21,15 +21,15 @@ method = "pmm"
 maxIter = 5
 numImput = 11
 
-n = 15
+n = 100
 p = 4
 meanVect = rep(0,p) 
 stdVect = rep(1, p)
 corVal = .5 
 theoRsq = 0.9
 
-missingVarProp = 0.5
-missingObsProp = 0.3
+missingVarProp = 0.25
+missingObsProp = 0.2
 
 trueW = 1:p
 trueW0 = p/2
@@ -81,13 +81,13 @@ polyList[[i]]=polyListBak[[i]]
 
 	
 
-parListTwoSlacks = list(Ccertain=1000, Cuncertain=1000, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = T) 
+parListTwoSlacks = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = T) 
 resTwoSlacks = DoTrainModel(polyList, parListTwoSlacks); #print(sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus)))
 
 modelTwo=model
 resGurobiTwo = resGurobi
 
-parListOneSlack = list(Ccertain=1000, Cuncertain=1000, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F) 
+parListOneSlack = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F) 
 resOneSlack = DoTrainModel(polyList, parListOneSlack); #print(sum(resOneSlack$csi))
 
 

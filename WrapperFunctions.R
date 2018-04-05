@@ -23,7 +23,7 @@ GenerateData = function(){
 			n2=sum(apply(doDataSplitOutOuter[[i]]$outDat$missing, 1, HasNA))
 			n3=sum(apply(doDataSplitOutOuter[[i]]$inDat$missing, 1, HasNA, opposite=T))
 			n4=sum(apply(doDataSplitOutOuter[[i]]$outDat$missing, 1, HasNA, opposite=T))
-			if(n1==0 | n2==0 | n3==0 | n4==0){
+			if(n1<2 | n2==0 | n3<2 | n4==0){
 				success = F				
 				if(!rejectSilently){
 					cat("Rejecting generated data. Starting over\n")
@@ -36,7 +36,7 @@ GenerateData = function(){
 				n6 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$outDat$missing, 1, HasNA))
 				n7 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$inDat$missing, 1, HasNA, opposite=T))
 				n8 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$outDat$missing, 1, HasNA, opposite=T))
-				if(n5==0 | n6==0 | n7==0 | n8==0){
+				if(n5<2 | n6==0 | n7<2 | n8==0){
 					if(!rejectSilently){
 						cat("Rejecting generated data. Starting over\n")
 					}	
