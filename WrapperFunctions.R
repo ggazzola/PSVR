@@ -26,23 +26,28 @@ GenerateData = function(){
 			if(n1<2 | n2==0 | n3<2 | n4==0){
 				success = F				
 				if(!rejectSilently){
-					cat("Rejecting generated data. Starting over\n")
+					cat("Rejecting outer generated data. Starting over\n")
 				}	
 				break
 			}
 			
+			breakOuter=F
 			for(j in 1:length(doDataSplitOutOuter[[i]]$innerSplit)){
 				n5 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$inDat$missing, 1, HasNA))
 				n6 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$outDat$missing, 1, HasNA))
 				n7 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$inDat$missing, 1, HasNA, opposite=T))
 				n8 = sum(apply(doDataSplitOutOuter[[i]]$innerSplit[[j]]$outDat$missing, 1, HasNA, opposite=T))
 				if(n5<2 | n6==0 | n7<2 | n8==0){
+					success = F	
 					if(!rejectSilently){
-						cat("Rejecting generated data. Starting over\n")
+						cat("Rejecting inner generated data. Starting over\n")
 					}	
+					breakOuter = T
 					break
 				}
 			}
+			if(breakOuter)
+				break
 			if (i == length(doDataSplitOutOuter))
 				success = T
 		}
@@ -52,7 +57,8 @@ GenerateData = function(){
 			break
 		}
 		generateDataCnt = generateDataCnt+1
-		
+		if(!success)
+			cat("Starting attempt", generateDataCnt, "\n")
 	}
 	givenUp <<- givenUp
 }

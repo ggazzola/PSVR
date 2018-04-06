@@ -21,14 +21,14 @@ source("../WrapperFunctions.R")
 # we don't need to have a model that works well on both certain and uncertain; we need one that does better at least one of those; for the other thing
 # we can use a standard model, etc.
 
-maxGenerateDataAttempts = 10
-numFolds = 5#####################
+maxGenerateDataAttempts = 50
+numFolds = 10#####################
 scaleData = T
 method = "pmm"
 maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
 numImput = 50 ###############
 
-n = 100
+n = 120 # 112 is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
 p = 10
 meanVect = rep(0,p) 
 stdVect = rep(1, p)
@@ -57,7 +57,7 @@ AggregateTestError = mean
 replaceImputedWithTrueY = F
 
 maxUncertainDims = "all" # NULL #("all" considers the p+1 dims; NULL considers the actual max number of missing dims in all the data )
-nRep=1 # # MUST DO MORE REPEATS, the results don't seem stable
+nRep=10 # # MUST DO MORE REPEATS, the results don't seem stable
 
 if(T){
 	missingY = F # Do not modify this
@@ -73,9 +73,9 @@ for(repIdx in 1:nRep){
 rejectSilently=F	
 set.seed(repIdx)
 GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
-}
 if(givenUp)
 stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
+}
 }
 }
 }
@@ -144,7 +144,6 @@ if(F){
 	for (errMeasure in errMeasureVect){
 		for(approach in approachVect){
 			cat(approach, errMeasure, testRes[[1]][[errMeasure]][[approach]]$testErrorsAggregate, "\n")
-			cat("\n")
 		}
 	}
 }

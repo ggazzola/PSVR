@@ -47,7 +47,7 @@ DoScale = function(dat){
 	return(list(mean=datMean, std=datSd))
 }
 
-DoOriginalMissingDataSplit = function(doDatOut, doMissOut, numFolds){
+DoOriginalMissingDataSplit = function(doDatOut, doMissOut, numFolds, stratifyByMiss=T){
 	# Splits 'original' data set and same after application of DoMiss,
 	# into train/test(validation) partitions
 	# The inner CreateFolds function does stratified (on Y) partitioning
@@ -62,7 +62,14 @@ DoOriginalMissingDataSplit = function(doDatOut, doMissOut, numFolds){
 	stopifnot("Y"==colnames(doMissOut)[ncol(doMissOut)])
 	stopifnot(all(dim(doDatOut)==dim(doMissOut)))
 	
-	inOutFolds = CreateFolds(doDatOut[,ncol(doDatOut)], numFolds)
+	HasNA = function(x) {any(is.na(x))}
+	
+	if(stratifyByMiss){
+		outVarForStrat = as.factor(apply(doMissOut, 1, HasNA))
+	} else{
+		outVarForStrat = doDatOut[,ncol(doDatOut)]
+	}
+	inOutFolds = CreateFolds(outVarForStrat, numFolds)
 
 	inOutFoldsList = list()
 	
