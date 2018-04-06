@@ -134,7 +134,7 @@ DoDataSplit = function(doDatOut, numFolds, scaleData){
 
 #doDataSplitOut=DoDataSplit(doDatOut,numFolds=ncol(doDatOut),scaleData=T)
 
-DoMiss = function(dat, missingY, missingObsProp, missingVarProp){
+DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 	#Injects missing data totally at random
 	#MissingProb is the proportion of variables with missing values for any given observation
 	#If missingY is true, then the Y variable can have missing values as well
@@ -144,21 +144,56 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp){
 	stopifnot(is.numeric(missingVarProp) & missingVarProp>=0 & ifelse(missingY, missingVarProp<1, missingVarProp<=1))
 	stopifnot(is.numeric(missingObsProp) & missingObsProp>=0 & missingObsProp<1)
 	
+	if(missingObsProp==0 | missingVarProp==0)
+		return(dat)
+	
 	stopifnot("Y"%in%colnames(dat))
 	p = ncol(dat)
 	n = nrow(dat)
 	totPotentialMissVar = ifelse(missingY, p, p-1)
 	numMissVar = round(totPotentialMissVar*missingVarProp)
-	numMissObs = round(n*missingObsProp)
 	stopifnot(numMissVar<totPotentialMissVar)
-	stopifnot(numMissObs<n)
 	
-	whichMissObs = sample(n, numMissObs)
-	for(i in whichMissObs){
-		dat[i, sample(totPotentialMissVar, numMissVar)] = NA # each row independently of the other has a certain proportion of missing columns
+	if(doMCAR){
+		numMissObs = round(n*missingObsProp)
+		stopifnot(numMissObs<n)
+	
+		whichMissObs = sample(n, numMissObs)
+		for(i in whichMissObs){
+			dat[i, sample(totPotentialMissVar, numMissVar)] = NA # each row independently of the other has a certain proportion of missing columns
+		}
+	} else{
+		datScaled = scale(dat)
+		
+		numNonMissingVars = p-1-numMissVar # here we are systematically making the MAR process *not* conditional on Y, but only on some of the Xs
+		whichNonMissingVars = sort(sample(p-1, numNonMissingVars))
+		whichMissingVars = (1:(p-1))[-whichNonMissingVars]
+		
+		beta <- whichNonMissingVars    # arbitrary... # note that this could make a difference, when the individual input variables
+		# play different roles, have different distributions (e.g., in real data)
+		#here we use whichNonMissingVars as beta so that for the same column-index, the corresponding beta is always the same
+		# https://stats.stackexchange.com/questions/109737/how-to-generate-mar-data-with-a-fixed-proportion-of-missing-values #implement MAR               
+		f <- function(t) {            # Define a path through parameter space
+		  sapply(t, function(y) mean(1 / (1 + exp(-y -VectToMat(datScaled[,whichNonMissingVars],F) %*% beta)))) # VectToMat in case only one non missing var
+		}
+
+		resAlpha <- sapply(missingObsProp, function(missingObsProp) {
+			alpha <- uniroot(function(t) f(t) - missingObsProp, c(-1e6, 1e6), tol = .Machine$double.eps^0.5)$root
+		  	return(alpha)
+		  	})
+
+		probVect = exp(VectToMat(datScaled[,whichNonMissingVars],F) %*% beta+resAlpha)/(1+exp(VectToMat(datScaled[,whichNonMissingVars],F) %*% beta+resAlpha))
+
+		for(i in 1:n)
+			if (rbinom(1, 1, probVect[i])==1)
+					dat[i,whichMissingVars] =NA # all variables selected to be missing are missing
+		
 	}
 	return(dat)	
 }
+
+
+
 
 DoMissFold = function(doDataSplitOut, missingY, missingObsProp, missingVarProp){
 	doDataSplitDoMissOut = doDataSplitOut

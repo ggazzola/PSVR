@@ -3,11 +3,23 @@ GenerateData = function(){
 	success = F
 	givenUp = F
 	generateDataCnt = 1
+	
+	if(realData){
+		dd = load(paste0(dataFolder, realDataFileName))
+		stopifnot("dat"%in%dd)
+		doDatOut = dat
+	}
+	
 	while(!success){
-		covMat <<- DoCovMat(p=p, corVal=corVal, stdVect=stdVect)
-		doDatOut <<- DoDat(n=n, meanVect=meanVect, covMat=covMat, trueW=trueW, trueW0=trueW0, theoRsq=theoRsq) # sample data
+		if(!realData){
+			covMat <<- DoCovMat(p=p, corVal=corVal, stdVect=stdVect)
+			doDatOut <<- DoDat(n=n, meanVect=meanVect, covMat=covMat, trueW=trueW, trueW0=trueW0, theoRsq=theoRsq) # sample data
+		}
+		if(injectMissingness & any(is.na(doDatOut)))
+			stop("Should not inject missingness in data set that already contains missing values")
 		doMissOut <<- DoMiss(dat=doDatOut, missingY=missingY, missingObsProp = missingObsProp, missingVarProp=missingVarProp) # inject missing values
 		doDataSplitOutOuter = DoOriginalMissingDataSplit(doDatOut=doDatOut, doMissOut = doMissOut, numFolds=numFolds) #partition data (with missing values) in multiple training/testing sets using STRATIFIED x-fold validation -- CONSIDER NON-STRATIFIED???(same in inner below)
+		stopifnot(colnames(doDatOut)[ncol(doDatOut)]=="Y")
 	
 		for(i in 1:length(doDataSplitOutOuter)){
 			currTrain = doDataSplitOutOuter[[i]]$inDat$missing #current training portion

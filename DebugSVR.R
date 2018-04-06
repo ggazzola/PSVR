@@ -13,7 +13,7 @@ seed=1
 
 set.seed(seed)
 
-numFolds = 5
+numFolds = 10
 scaleData = T
 
 
@@ -28,8 +28,8 @@ stdVect = rep(1, p)
 corVal = .5 
 theoRsq = 0.9
 
-missingVarProp = 0.25
-missingObsProp = 0.2
+missingVarProp = 0.75
+missingObsProp = 0.9
 
 trueW = 1:p
 trueW0 = p/2
