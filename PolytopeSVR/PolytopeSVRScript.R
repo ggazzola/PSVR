@@ -102,19 +102,22 @@ for(missingVarProp in missingVarPropVect){#############
 cat("Data partitions containing at least one missing point and one non-missing point can be generated\n")
 cat("Proceeding to actual experiments...\n\n\n")
 
-if(realData){
-	cat("Working on", realDataFileName, "\n")
-} else{
-	cat("Working on artificial data\n")	
-}
 
 for(missingVarProp in missingVarPropVect){#############
 	for(missingObsProp in missingObsPropVect){############  
 		for(corVal in corValVect){ #################
 			for(theoRsq in theoRsqVect){
-
-				cat("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "starting\n")
-
+				currDate = system('date +%Y%m%d-%H%M%S', intern=T)
+				if(realData){
+					fileNameRoot = paste0(realDataFileName)
+				} else{
+					fileNameRoot = paste0("NormalN", n, "P", p, "Cor", corVal, "Rsq", theoRsq)
+				}
+				appVect = sub("do", "", approachVect); appVect = sub("Square", "Sq", appVect)
+				fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
+					"Appr", appVect, "Date", currDate, ".RData", sep="")
+				cat("STARTING", fileName, "\n")
+				
 				totComb = nRep*length(errMeasureVect)*length(approachVect)
 				testRes = list()
 				cnt = 0
@@ -207,17 +210,8 @@ for(missingVarProp in missingVarPropVect){#############
 					#	}
 					#}
 
-				currDate = system('date +%Y%m%d-%H%M%S', intern=T)
-				if(realData){
-					fileNameRoot = paste0(realDataFileName)
-				} else{
-					fileNameRoot = paste0("NormalN", n, "P", p, "Cor", corVal, "Rsq", theoRsq)
-				}
-				appVect = sub("do", "", approachVect); appVect = sub("Square", "Sq", appVect)
-				fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
-					"Appr", appVect, "Date", currDate, ".RData", sep="")
 				save.image(file=fileName)
-				cat(fileName, "done\n"))
+				cat(fileName, "DONE\n")
 			}
 		}
 	}
