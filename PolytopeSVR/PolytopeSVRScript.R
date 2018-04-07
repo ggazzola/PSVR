@@ -39,8 +39,8 @@ if(!realData){
 
 	trueW = 1:p
 	trueW0 = p/2
-	corValVect = c(0.9) ####################
-	theoRsqVect = c(0.8) ####################
+	corValVect = c(0.9, 0.5, 0) ####################
+	theoRsqVect = c(0.95, 0.9, 0.8) ####################
 
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
@@ -51,16 +51,16 @@ if(!realData){
 }
 
 parValuesList = list(
-	Ccertain=10^(-1),   ##################
-	Cuncertain=10^(-1), ##################
-	epsilonCertain=10^(-1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = 10^(-1:0),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=10^(-2:1),   ##################
+	Cuncertain=10^(-2:1), ##################
+	epsilonCertain=10^(-2:1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = 10^(-2:1),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T
 	)	
 
 missingVarPropVect = c(0.2, 0.9)########
 missingObsPropVect = c(0.2, 0.9) ############
-quantOrSdPropValues = c(0.1) ####################
+quantOrSdPropValues = c(0.05, 0.1, 0.25, 0.5, 0.75, 1) ####################
 errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 "maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 "maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
@@ -208,8 +208,16 @@ for(missingVarProp in missingVarPropVect){#############
 					#}
 
 				currDate = system('date +%Y%m%d-%H%M%S', intern=T)
-				save.image(file=paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "MCAR", doMCAR, "Date", currDate, ".RData", sep=""))
-				cat(paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "done\n"))
+				if(realData){
+					fileNameRoot = paste0(realDataFileName)
+				} else{
+					fileNameRoot = paste0("NormalN", n, "P", p, "Cor", corVal, "Rsq", theoRsq)
+				}
+				appVect = sub("do", "", approachVect); appVect = sub("Square", "Sq", appVect)
+				fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
+					"Appr", appVect, "Date", currDate, ".RData", sep="")
+				save.image(file=fileName)
+				cat(fileName, "done\n"))
 			}
 		}
 	}
