@@ -29,7 +29,7 @@ numImput = 50 ###############
 
 realData = F
 injectMissingness = T
-doMCAR = T
+doMCAR = T #######
 
 if(!realData){
 	n = 120 # 112 is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
@@ -208,7 +208,7 @@ for(missingVarProp in missingVarPropVect){#############
 					#}
 
 				currDate = system('date +%Y%m%d-%H%M%S', intern=T)
-				save.image(file=paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "Date", currDate, ".RData", sep=""))
+				save.image(file=paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "MCAR", doMCAR, "Date", currDate, ".RData", sep=""))
 				cat(paste("MissObs", missingObsProp, "Var", missingVarProp, "Cor", corVal, "Rsq", theoRsq, "done\n"))
 			}
 		}

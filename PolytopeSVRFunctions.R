@@ -163,18 +163,27 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 			dat[i, sample(totPotentialMissVar, numMissVar)] = NA # each row independently of the other has a certain proportion of missing columns
 		}
 	} else{
-		datScaled = scale(dat)
+		datScaled = scale(dat) # scaling to make sure the strength of conditional effects depend only on beta and not on the scale of variables
 		
 		numNonMissingVars = p-1-numMissVar # here we are systematically making the MAR process *not* conditional on Y, but only on some of the Xs
-		whichNonMissingVars = sort(sample(p-1, numNonMissingVars))
-		whichMissingVars = (1:(p-1))[-whichNonMissingVars]
 		
-		beta <- whichNonMissingVars    # arbitrary... # note that this could make a difference, when the individual input variables
-		# play different roles, have different distributions (e.g., in real data)
-		#here we use whichNonMissingVars as beta so that for the same column-index, the corresponding beta is always the same
+		whichMissingVarsMat = matrix(, nrow=n, ncol=numMissVar)
+		whichNonMissingVarsMat = matrix(, nrow=n, ncol=numNonMissingVars)
+		betaMat = matrix(, nrow=n, ncol=numNonMissingVars)
+		innerProdVect = numeric(n)
+		for(i in 1:n){
+			whichMissingVarsMat[i,]= sort(sample(totPotentialMissVar, numMissVar)) # sorting just for visualization purposes
+			whichNonMissingVarsMat[i,]= (1:(p-1))[-whichMissingVarsMat[i,]] 
+			betaMat[i, ] = whichNonMissingVarsMat[i,] # arbitrary... # note that this could make a difference, when the individual input variables
+			# play different roles, have different distributions (e.g., in real data)
+			#here we use whichNonMissingVars as beta so that for the same column-index, the corresponding beta is always the same
+			innerProdVect[i]=VectToMat(datScaled[i, whichNonMissingVarsMat[i,]], F)%*%betaMat[i, ]
+		}
+	
+		
 		# https://stats.stackexchange.com/questions/109737/how-to-generate-mar-data-with-a-fixed-proportion-of-missing-values #implement MAR               
 		f <- function(t) {            # Define a path through parameter space
-		  sapply(t, function(y) mean(1 / (1 + exp(-y -VectToMat(datScaled[,whichNonMissingVars],F) %*% beta)))) # VectToMat in case only one non missing var
+		  sapply(t, function(y) mean(1 / (1 + exp(-y -innerProdVect)))) # VectToMat in case only one non missing var
 		}
 
 		resAlpha <- sapply(missingObsProp, function(missingObsProp) {
@@ -182,11 +191,15 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 		  	return(alpha)
 		  	})
 
-		probVect = exp(VectToMat(datScaled[,whichNonMissingVars],F) %*% beta+resAlpha)/(1+exp(VectToMat(datScaled[,whichNonMissingVars],F) %*% beta+resAlpha))
-
+		probVect = numeric(n)
+		for(i in 1:n){
+			probVect[i] = exp(VectToMat(datScaled[i,whichNonMissingVarsMat[i,]],F) %*% betaMat[i, ]+resAlpha)/
+				(1+exp(VectToMat(datScaled[i,whichNonMissingVarsMat[i,]],F) %*% betaMat[i, ]+resAlpha)) 
+		}
+			
 		for(i in 1:n)
 			if (rbinom(1, 1, probVect[i])==1)
-					dat[i,whichMissingVars] =NA # all variables selected to be missing are missing
+					dat[i,whichMissingVarsMat[i,]] =NA # all variables selected to be missing are always ALL missing
 		
 	}
 	return(dat)	

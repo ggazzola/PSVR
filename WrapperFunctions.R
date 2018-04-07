@@ -17,7 +17,7 @@ GenerateData = function(){
 		}
 		if(injectMissingness & any(is.na(doDatOut)))
 			stop("Should not inject missingness in data set that already contains missing values")
-		doMissOut <<- DoMiss(dat=doDatOut, missingY=missingY, missingObsProp = missingObsProp, missingVarProp=missingVarProp) # inject missing values
+		doMissOut <<- DoMiss(dat=doDatOut, missingY=missingY, missingObsProp = missingObsProp, missingVarProp=missingVarProp, doMCAR) # inject missing values
 		doDataSplitOutOuter = DoOriginalMissingDataSplit(doDatOut=doDatOut, doMissOut = doMissOut, numFolds=numFolds) #partition data (with missing values) in multiple training/testing sets using STRATIFIED x-fold validation -- CONSIDER NON-STRATIFIED???(same in inner below)
 		stopifnot(colnames(doDatOut)[ncol(doDatOut)]=="Y")
 	
