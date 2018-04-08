@@ -59,7 +59,7 @@ PcBBUncertainty = function(overallPCConstraintsFullOut, subsetPCConstraintsFullO
 	# in the subspace of missing dimensions of a given point 
 	# subsetPCConstraintsFullOut: PC bb enclosing uncertainty of the above point in the subspace of missing dimensions of that point
 	#
-	stopifnot(is.matrix(datMiss))
+	stopifnot(is.matrix(datMiss)|is.data.frame(datMiss))
 	stopifnot((is.character(maxUncertainDims) & maxUncertainDims=="all") | is.null(maxUncertainDims))
 	
 	datMissP = ncol(datMiss)
