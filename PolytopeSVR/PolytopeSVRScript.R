@@ -158,7 +158,10 @@ for(missingVarProp in missingVarPropVect){#############
 
 							cnt = cnt+1
 							if(round(cnt/totComb*100)%%10==0){
-								cat(cnt/totComb*100, "% done\n")
+								progress = cnt/totComb*100
+								progressOut = paste(progress, "%done\n")
+								cat(progressOut)
+								write.table(progressOut, quote=F, row.names=F, col.names=F, file=paste0(currDate, "Progress.txt"))
 							}
 						}
 					}
