@@ -104,21 +104,17 @@ cat("Data partitions containing at least one missing point and one non-missing p
 cat("Proceeding to actual experiments...\n\n\n")
 
 
+currDate = system('date +%Y%m%d-%H%M%S', intern=T)
+
 for(missingVarProp in missingVarPropVect){#############
 	for(missingObsProp in missingObsPropVect){############  
 		for(corVal in corValVect){ #################
 			for(theoRsq in theoRsqVect){
-				currDate = system('date +%Y%m%d-%H%M%S', intern=T)
 				if(realData){
 					fileNameRoot = paste0(realDataFileName)
 				} else{
 					fileNameRoot = paste0("NormalN", n, "P", p, "Cor", corVal, "Rsq", theoRsq)
-				}
-				appVect = sub("do", "", approachVect); appVect = sub("Square", "Sq", appVect)
-				fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
-					"Appr", appVect, "Date", currDate, ".RData", sep="")
-				cat("STARTING", fileName, "\n")
-				
+				}		
 				totComb = nRep*length(errMeasureVect)*length(approachVect)
 				testRes = list()
 				cnt = 0
@@ -133,8 +129,12 @@ for(missingVarProp in missingVarPropVect){#############
 					gc()
 
 					for(approach in approachVect){
-						cat("Starting inner cross-validation, rep =", repIdx, ", approach =", approach,  "...\n")
-
+						appShort = sub("do", "", approach)
+						appShort = sub("Square", "Sq", appShort)
+						fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
+							"Appr", appShort, "Date", currDate, ".RData", sep="")
+							
+						cat("Starting cross-validation on", fileName, "Rep", repIdx, "...\n")
 						CalculateValidationErrors() # errors calculated with all possible error measures
 						gc()
 						for(errMeasure in errMeasureVect){
@@ -147,7 +147,7 @@ for(missingVarProp in missingVarPropVect){#############
 							SetUpTest()
 							testRes[[repIdx]][[errMeasure]][[approach]]$testSetup = getTrainResReadyForTest 
 
-							cat("Starting inner testing, rep =", repIdx, ", approach =", approach, ", errMeasure =", errMeasure, "...\n")
+							cat("Starting testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "...\n")
 							CalculateTestErrors() # choose best model based on errMeasure, train new model on outer training data, and test it
 							gc()
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrors = errVect 
@@ -159,14 +159,17 @@ for(missingVarProp in missingVarPropVect){#############
 							cnt = cnt+1
 							if(round(cnt/totComb*100)%%10==0){
 								progress = cnt/totComb*100
-								progressOut = paste(progress, "%done\n")
+								progressOut = paste(progress, "% done at",  date(), "\n")
 								cat(progressOut)
 								write.table(progressOut, quote=F, row.names=F, col.names=F, file=paste0(currDate, "Progress.txt"))
 							}
 						}
 					}
 				}
-
+				
+				save.image(file=fileName)
+				cat(fileName, "Rep", repIdx, "DONE\n")
+				
 				if(F){
 					for (errMeasure in errMeasureVect){
 						for(approach in approachVect){
@@ -214,8 +217,6 @@ for(missingVarProp in missingVarPropVect){#############
 					#	}
 					#}
 
-				save.image(file=fileName)
-				cat(fileName, "DONE\n")
 			}
 		}
 	}
