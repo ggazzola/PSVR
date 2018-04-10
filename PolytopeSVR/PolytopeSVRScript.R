@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 
 require(MASS)
 require(mice)
@@ -116,6 +117,15 @@ resultsFolderName = paste0(fileNameRoot, currDate)
 system(paste("mkdir", resultsFolderName))
 system(paste("cp *.R *sh", resultsFolderName))
 system(paste("cp ../*.R", resultsFolderName))
+progressFile = paste0(resultsFolderName, "/Progress.txt")
+				
+totComb = length(missingVarPropVect)*length(missingObsPropVect)*length(corValVect)*length(theoRsqVect)*
+	nRep*length(approachVect)*length(errMeasureVect)
+	
+progressOut=paste("Starting a total of", totComb, "combinations at", date())
+cat(progressOut)
+write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+	
 				
 for(missingVarProp in missingVarPropVect){#############
 	for(missingObsProp in missingObsPropVect){############  
@@ -125,14 +135,11 @@ for(missingVarProp in missingVarPropVect){#############
 					fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq)
 				}		
 				
-				
-				totComb = nRep*length(errMeasureVect)*length(approachVect)
 				testRes = list()
-				cnt = 0
+				cnt = 1
 
 				for(repIdx in 1:nRep){
 					testRes[[repIdx]]=list()
-					cat("Starting data generation, outer/inner splitting, and imputation, rep =", repIdx, "...\n")
 					rejectSilently=T	
 					set.seed(repIdx)
 					GenerateData()
@@ -166,20 +173,18 @@ for(missingVarProp in missingVarPropVect){#############
 							stopifnot(length(errVect)==numFolds)
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect)
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
-
+				
+							progressOut=paste("Combination", cnt, "out of", totComb, "done at", date())
+							cat(progressOut)
+							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+							save.image(file=paste0(resultsFolderName, "/", fileName)) # save only testRes?
+				
 							cnt = cnt+1
-							if(round(cnt/totComb*100)%%10==0){
-								progress = cnt/totComb*100
-								progressOut = paste(progress, "% done at",  date(), "\n")
-								cat(progressOut)
-								write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=paste0(currDate, "Progress.txt"))
-							}
+							
 						}
 					}
 				}
 				
-				save.image(file=paste0(resultsFolderName, "/", fileName))
-				cat(fileName, "Rep", repIdx, "DONE\n")
 				
 				if(F){
 					for (errMeasure in errMeasureVect){

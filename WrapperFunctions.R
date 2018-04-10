@@ -134,7 +134,7 @@ CalculateValidationErrors = function(){
 		doErrorFoldOutInnerList[[i]] = DoExtractErrMat(doErrorFoldOut = doErrorFoldOutInnerListTmp) # these are cross validation results for the i-th training data set (divided into numFolds training/validation); doErrorFoldOutInnerList[[i]][[j]][[k]] are the results for the j-th model parameter combination, in the k-th training/validation inner partition of the i-th outer training/testing fold, with all error measures
 		
 		innerProgressOut = paste("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "done")
-		write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=paste0(currDate, "Progress.txt"))
+		write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 		
 	}
 	doErrorFoldOutInnerList<<-doErrorFoldOutInnerList
@@ -212,6 +212,8 @@ CalculateTestErrors = function(){
 		currError = DoErrorList(doTrainModelOut=currModel, medianOrMeanImputOut=testMeanOrMedian, 
 			doPolyListOut=currTrainPolyList, missingDatOutLogical = missingTestDataLogical)[[errMeasure]]
 		errVect = c(errVect, currError)
+		outerProgressOut = paste("Outer testing", i, "out of ", length(getTrainResReadyForTest), "done")
+		write.table(outerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	}
 	errVect <<-errVect
 }

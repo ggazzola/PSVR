@@ -671,7 +671,6 @@ DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithT
 			if(approach %in%c("doSquarebbQuant", "doSquarebbSd")){
 				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$meanBoxImputDat
 			} else{
-				cat("Assuming non-box polyhedra: extracting median of multiple imputations for out of sample predictions\n")
 				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$medianImputDat
 			}
 			currFoldMissingOutDatLogical = apply(currFoldMissingDatOut, 1, function(x){any(is.na(x))})  # T for out-of-sample points with missing values
