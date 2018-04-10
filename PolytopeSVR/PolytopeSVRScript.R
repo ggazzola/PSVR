@@ -161,7 +161,7 @@ for(missingVarProp in missingVarPropVect){#############
 								progress = cnt/totComb*100
 								progressOut = paste(progress, "% done at",  date(), "\n")
 								cat(progressOut)
-								write.table(progressOut, quote=F, row.names=F, col.names=F, file=paste0(currDate, "Progress.txt"))
+								write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=paste0(currDate, "Progress.txt"))
 							}
 						}
 					}

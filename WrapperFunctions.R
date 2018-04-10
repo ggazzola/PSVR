@@ -132,7 +132,10 @@ CalculateValidationErrors = function(){
 			doErrorFoldOutInnerListTmp = c(doErrorFoldOutInnerListTmp, currPcPropErrFold) # doErrorFoldOutInnerListTmp[[j]] contains results for the j-th model parameter combination over each of the folds
 		}
 		doErrorFoldOutInnerList[[i]] = DoExtractErrMat(doErrorFoldOut = doErrorFoldOutInnerListTmp) # these are cross validation results for the i-th training data set (divided into numFolds training/validation); doErrorFoldOutInnerList[[i]][[j]][[k]] are the results for the j-th model parameter combination, in the k-th training/validation inner partition of the i-th outer training/testing fold, with all error measures
-		cat("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "done\n")
+		
+		innerProgressOut = paste("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "done")
+		write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=paste0(currDate, "Progress.txt"))
+		
 	}
 	doErrorFoldOutInnerList<<-doErrorFoldOutInnerList
 }
