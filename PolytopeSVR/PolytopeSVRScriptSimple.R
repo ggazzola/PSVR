@@ -22,26 +22,26 @@ dataFolder="../Data/"
 
 
 maxGenerateDataAttempts = 20
-numFolds = 10#####################
+numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
-maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
-numImput = 50 ###############
+maxIter = 5 ################ try with small numbers of these two, to verify if imputation is possible first
+numImput = 6 ###############
 
 realData = F
 injectMissingness = T
 doMCAR = T #######
 
 if(!realData){
-	n = 120 # 112 is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
-	p = 10
+	n = 30 # 112 is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	p = 5
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
 
 	trueW = 1:p
 	trueW0 = p/2
-	corValVect = c(0.9, 0.5, 0) ####################
-	theoRsqVect = c(0.95, 0.9, 0.8) ####################
+	corValVect = c(0.9, 0) ####################
+	theoRsqVect = c(0.95) ####################
 
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
@@ -52,19 +52,17 @@ if(!realData){
 }
 
 parValuesList = list(
-	Ccertain=10^(-2:1),   ##################
-	Cuncertain=10^(-2:1), ##################
-	epsilonCertain=10^(-2:1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = 10^(-2:1),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=10^(1),   ##################
+	Cuncertain=10^(1), ##################
+	epsilonCertain=10^(1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = 10^(0:1),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T
 	)	
 
-missingVarPropVect = c(0.2, 0.9)########
-missingObsPropVect = c(0.2, 0.9) ############
-quantOrSdPropValues = c(0.05, 0.1, 0.25, 0.5, 0.75, 1) ####################
-errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
-"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
-"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
+missingVarPropVect = c(0.2)########
+missingObsPropVect = c(0.2) ############
+quantOrSdPropValues = c(0.05, 1) ####################
+errMeasureVect=c("cor", "quantNineAe", "MaxaeCert",  "quantNineAeUncert") #maeCert #maeUncert, ...
 approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant") 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
