@@ -319,7 +319,7 @@ Cor = function(trueY, predY, toInclude=rep(T, length(predY))){
 		return(Inf)
 	trueY = trueY[toInclude]
 	predY = predY[toInclude]
-	res = cor(trueY,predY)
+	res = -cor(trueY,predY) #high is good (unlike for errors)
 	if(is.na(res))
 		res = 0
 	return(res)

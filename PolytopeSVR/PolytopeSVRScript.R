@@ -23,11 +23,11 @@ dataFolder="../Data/"
 
 
 maxGenerateDataAttempts = 20
-numFolds = 10#####################
+numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
 maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
-numImput = 50 ###############
+numImput = 20 ###############
 
 realData = F
 injectMissingness = T
@@ -57,7 +57,8 @@ parValuesList = list(
 	Cuncertain=c(0,10^(-2:1)), ##################
 	epsilonCertain=c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
 	extraEpsilonUncertain = c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
-	uncertaintySpecialTreatment = T
+	uncertaintySpecialTreatment = T,
+	linear =T
 	)	
 
 missingVarPropVect = 0.9#c(0.9, 0.2)########
@@ -117,7 +118,7 @@ if(realData){
 	fileNameRoot = paste0("NormalN", n, "P", p)
 }		
 
-resultsFolderName = paste0(fileNameRoot, currDate)
+resultsFolderName = paste0(fileNameRoot, "Date" currDate)
 system(paste("mkdir", resultsFolderName))
 system(paste("cp *.R *sh", resultsFolderName))
 system(paste("cp ../*.R", resultsFolderName))

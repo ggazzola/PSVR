@@ -522,9 +522,8 @@ DoParListGrid = function(parValuesList){
 	# to be kept fixed
 	stopifnot(is.list(parValuesList))
 	requiredParams = names(formals(PolytopeSVR))
-	requiredParams = requiredParams[!requiredParams%in%c("polyList", "...")]
+	requiredParams = requiredParams[!requiredParams%in%c("polyList", "returnAllInfo", "...")]
 	parNames = names(parValuesList)
-	
 	stopifnot(all(sort(parNames)==sort(requiredParams)))
 	
 	parGrid = expand.grid(parValuesList)
