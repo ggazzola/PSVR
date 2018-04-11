@@ -41,8 +41,8 @@ if(!realData){
 
 	trueW = 1:p
 	trueW0 = p/2
-	corValVect = c(0.9, 0.5, 0) ####################
-	theoRsqVect = c(0.95, 0.9, 0.8) ####################
+	corValVect = 0.9#c(0.9, 0.5, 0) ####################
+	theoRsqVect = 0.95#c(0.95, 0.9, 0.8) ####################
 
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
@@ -53,28 +53,29 @@ if(!realData){
 }
 
 parValuesList = list(
-	Ccertain=10^(-2:1),   ##################
-	Cuncertain=10^(-2:1), ##################
-	epsilonCertain=10^(-2:1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = 10^(-2:1),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0,10^(-2:1)),   ##################
+	Cuncertain=c(0,10^(-2:1)), ##################
+	epsilonCertain=c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T
 	)	
 
-missingVarPropVect = c(0.2, 0.9)########
-missingObsPropVect = c(0.2, 0.9) ############
+missingVarPropVect = 0.9#c(0.9, 0.2)########
+missingObsPropVect = 0.9# c(0.9, 0.2) ############
 quantOrSdPropValues = c(0.05, 0.1, 0.25, 0.5, 0.75, 1) ####################
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
-errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", 
-	"maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
-	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantNineAeUncert") #maeCert #maeUncert, ...
-approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant") 
+errMeasureVect=c("mae", "Maxae", "cor", "maeCert", "MaxaeCert",  "corCert", "maeUncert", "MaxaeUncert", "corUncert") #########
+#c("mae", "rmse", "Maxae", "cor",  "quantEightAe", ####################
+	#"maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
+	#"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantNineAeUncert") #maeCert #maeUncert, ...
+approachVect = "doPCbb"#c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
 AggregateTestError = mean
 replaceImputedWithTrueY = F
 
 maxUncertainDims = "all" # NULL #("all" considers the p+1 dims; NULL considers the actual max number of missing dims in all the data )
-nRep=10 # # MUST DO MORE REPEATS, the results don't seem stable
+nRep=1 # # MUST DO MORE REPEATS, the results don't seem stable
 
 if(T){
 	missingY = F # Do not modify this

@@ -1,4 +1,4 @@
-PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsilonUncertain, uncertaintySpecialTreatment=T, twoSlacks = F, ...){
+PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsilonUncertain, uncertaintySpecialTreatment=T, twoSlacks = F, linear = F, ...){
 	# Creates SVR model object for Gurobi
 	# Equivalent to PolytopeSVRNoUncertainSpecialTreatment if uncertaintySpecialTreatment=F, 
 	#	provided Ccertain =C and epsilonCertain=epsilon
@@ -20,7 +20,7 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	if(uncertaintySpecialTreatment & !twoSlacks){
 		stopifnot(is.numeric(Cuncertain) & length(Cuncertain)==1)
 		stopifnot(is.numeric(extraEpsilonUncertain) & length(extraEpsilonUncertain)==1)
-		uncertaintyVect = 	sapply(polyList, function(x) x$uncertainty)
+		uncertaintyVect = 	sapply(polyList, function(x) {x$uncertainty})
 		if(is.character(uncertaintyVect))
 			stop("Can't proceed with uncertaintySpecialTreatment because uncertaintyVect[1] is ", uncertaintyVect[1])
 		stopifnot(is.numeric(uncertaintyVect) & min(uncertaintyVect)>=0 & max(uncertaintyVect)<=1)
@@ -157,6 +157,37 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 			lhsMatrix[blockRows, csiIdx[[i]]] = csiColBlock
 		}
 	}
+	
+	if(linear){
+		extraTopBlockLhs = matrix(0 , nrow=2*p, ncol=p+ncol(lhsMatrix))
+		extraLeftBlockLhs = matrix(0, nrow = nrow(lhsMatrix), ncol=p)
+		cntRow = 1
+		for(i in 1:p){
+			extraTopBlockLhs[cntRow, c(i, i+p)] = -1
+			extraTopBlockLhs[cntRow+1, c(i, i+p)] = c(-1,1)
+			cntRow = cntRow+2
+		}
+		
+		extraTopBlockRhs = rep(0, 2*p)
+		
+		extraTopSenseVect = rep("<=", 2*p)
+		
+		extraLbVect = rep(-Inf, p)
+		extraCoef = rep(1, p)
+		extraRows = 2*p
+		extraColumns = p
+		extraNames = paste0("b", 1:p)
+		
+		lhsMatrix = rbind(extraTopBlockLhs, cbind(extraLeftBlockLhs,lhsMatrix))
+		rhsVect = c(extraTopBlockRhs, rhsVect)
+		senseVect = c(extraTopSenseVect, senseVect)
+		lbVect = c(extraLbVect, lbVect)
+		coefVect = c(extraCoef, coefVect)
+		varNames = c(extraNames, varNames)
+		
+	} else{
+		extraRows = extraColumns = 0
+	}
 
 	
 	model = list()
@@ -165,21 +196,24 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	model$sense = senseVect
 	model$lb = lbVect
 	model$obj = coefVect
-	model$Q=QMatrix
+	if(!linear)
+		model$Q=QMatrix
 	varIdx = list()
-	varIdx$w = 1:p
-	varIdx$w0 = pPlusOne
-	varIdx$u = uIdx
-	varIdx$v = vIdx
+	if(linear)
+		varIdx$b=1:p
+	varIdx$w = extraColumns+ 1:p
+	varIdx$w0 = extraColumns+pPlusOne
+	varIdx$u = lapply(uIdx, function(x) {x+ extraColumns})
+	varIdx$v = lapply(vIdx, function(x) {x+ extraColumns})
 	varIdx$allU = unlist(varIdx$u)
 	varIdx$allV = unlist(varIdx$v)
 	if(twoSlacks){
-		varIdx$csiPlus = csiPlusIdx
-		varIdx$csiMinus = csiMinusIdx
+		varIdx$csiPlus = lapply(csiPlusIdx, function(x) {x+ extraColumns})
+		varIdx$csiMinus = lapply(csiMinusIdx, function(x) {x+ extraColumns})
 		varIdx$allCsiPlus = unlist(varIdx$csiPlus)
 		varIdx$allCsiMinus = unlist(varIdx$csiMinus)
 	} else{
-		varIdx$csi = csiIdx
+		varIdx$csi = lapply(csiIdx, function(x) {x+ extraColumns})
 		varIdx$allCsi = unlist(varIdx$csi)
 	}
 	model$varIdx = varIdx

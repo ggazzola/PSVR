@@ -565,6 +565,12 @@ DoTrainModel = function(polyList, parList){
 			res = list(w=w, w0=w0, u=u, v=v, csi=csi)
 		}
 	}
+	if(is.logical(parList$linear)){
+		if(parList$linear){
+			b = GetSolution(model, resGurobi, "b")
+			res$b = b
+		}	
+	}	
 	class(res) = "PolytopeSVRWW0"
 	return(res)
 }

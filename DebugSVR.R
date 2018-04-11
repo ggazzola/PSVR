@@ -13,9 +13,13 @@ seed=1
 
 set.seed(seed)
 
-numFolds = 10
+numFolds = 2
 scaleData = T
-
+realData = F
+injectMissingness = T
+doMCAR = T ###
+rejectSilently = F
+maxGenerateDataAttempts=10
 
 method = "pmm"
 maxIter = 5
@@ -28,10 +32,10 @@ stdVect = rep(1, p)
 corVal = .5 
 theoRsq = 0.9
 
-missingVarProp = 0.75
-missingObsProp = 0.9
+missingVarProp = 0.8
+missingObsProp = 0.8
 
-trueW = 1:p
+trueW = -(1:p)
 trueW0 = p/2
 noiseLevel = 1
 
@@ -62,8 +66,8 @@ if(T){
 GenerateData()
 MultiplyImpute()
 
-datMiss = doDataSplitOutOuter[[2]]$inDat$missing
-datImput = doDataSplitOutOuter[[2]]$inDat$imputed
+datMiss = doDataSplitOutOuter[[1]]$inDat$missing
+datImput = doDataSplitOutOuter[[1]]$inDat$imputed
 
 
 #imputDatList, medianImputDat, quantOrSdProp, scaleData, maxUncertainDims, doMedian
@@ -81,27 +85,28 @@ polyList[[i]]=polyListBak[[i]]
 
 	
 
-parListTwoSlacks = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = T) 
-resTwoSlacks = DoTrainModel(polyList, parListTwoSlacks); #print(sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus)))
+parListNonLinear = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F, linear=F) 
+resNonLinear = DoTrainModel(polyList, parListNonLinear); #print(sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus)))
 
 modelTwo=model
 resGurobiTwo = resGurobi
 
-parListOneSlack = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F) 
-resOneSlack = DoTrainModel(polyList, parListOneSlack); #print(sum(resOneSlack$csi))
+parListLinear = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F, linear=T) 
+resLinear= DoTrainModel(polyList, parListLinear); #print(sum(resOneSlack$csi))
 
 
 modelOne=model
 resGurobiOne = resGurobi
 
-res[[i]] =list()	
+#res[[i]] =list()	
 
-res[[i]]$resTwoSlacks=resTwoSlacks
-res[[i]]$resOneSlack=resOneSlack
-res[[i]]$ErrorDiff=sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus))-sum(resOneSlack$csi) # expecting >=0
+#res[[i]]$resTwoSlacks=resTwoSlacks
+#res[[i]]$resOneSlack=resOneSlack
+#res[[i]]$ErrorDiff=sum(c(resTwoSlacks$csiPlus, resTwoSlacks$csiMinus))-sum(resOneSlack$csi) # expecting >=0
+#cat(i, " has ", res[[i]]$ErrorDiff, "\n")
 
-
-cat(i, " has ", res[[i]]$ErrorDiff, "\n")
+cat(i, "NonLinear, w:", resNonLinear$w, "\n")
+cat(i, "Linear, w:", resLinear$w, "\n")
 }
 
 if(F){
