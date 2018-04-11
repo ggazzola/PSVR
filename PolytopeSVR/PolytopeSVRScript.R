@@ -156,7 +156,10 @@ for(missingVarProp in missingVarPropVect){#############
 						fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
 							"Appr", appShort, "Date", currDate, ".RData", sep="")
 							
-						cat("Starting cross-validation on", fileName, "Rep", repIdx, "...\n")
+						progressOut = paste("Starting cross-validation of", fileName, "Rep", repIdx, "...\n")
+						cat(progressOut)
+						write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+						
 						CalculateValidationErrors() # errors calculated with all possible error measures
 						gc()
 						for(errMeasure in errMeasureVect){
@@ -169,7 +172,10 @@ for(missingVarProp in missingVarPropVect){#############
 							SetUpTest()
 							testRes[[repIdx]][[errMeasure]][[approach]]$testSetup = getTrainResReadyForTest 
 
-							cat("Starting testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "...\n")
+							progressOut = paste("Starting testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "...\n")
+							cat(progressOut)
+							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+						
 							CalculateTestErrors() # choose best model based on errMeasure, train new model on outer training data, and test it
 							gc()
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrors = errVect 

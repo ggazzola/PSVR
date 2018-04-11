@@ -25,8 +25,8 @@ method = "pmm"
 maxIter = 5
 numImput = 11
 
-n = 100
-p = 4
+n = 240
+p = 10
 meanVect = rep(0,p) 
 stdVect = rep(1, p)
 corVal = .5 
