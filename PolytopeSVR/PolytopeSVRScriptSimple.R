@@ -119,7 +119,7 @@ progressFile = paste0(resultsFolderName, "/Progress.txt")
 totComb = length(missingVarPropVect)*length(missingObsPropVect)*length(corValVect)*length(theoRsqVect)*
 	nRep*length(approachVect)*length(errMeasureVect)
 	
-progressOut=paste("Starting a total of", totComb, "combinations at", date())
+progressOut=paste("Starting a total of", totComb, "combinations at", date(),  "\n")
 cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
@@ -171,7 +171,7 @@ for(missingVarProp in missingVarPropVect){#############
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect)
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
 				
-							progressOut=paste("Combination", cnt, "out of", totComb, "done at", date())
+							progressOut=paste("Combination", cnt, "out of", totComb, "done at", date(),  "\n")
 							cat(progressOut)
 							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 							save.image(file=paste0(resultsFolderName, "/", fileName)) # save only testRes?

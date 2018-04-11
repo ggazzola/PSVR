@@ -63,9 +63,12 @@ parValuesList = list(
 missingVarPropVect = c(0.2, 0.9)########
 missingObsPropVect = c(0.2, 0.9) ############
 quantOrSdPropValues = c(0.05, 0.1, 0.25, 0.5, 0.75, 1) ####################
-errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
-"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
-"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
+#errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
+#"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
+#"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
+errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", 
+	"maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
+	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantNineAeUncert") #maeCert #maeUncert, ...
 approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant") 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
@@ -122,10 +125,11 @@ progressFile = paste0(resultsFolderName, "/Progress.txt")
 totComb = length(missingVarPropVect)*length(missingObsPropVect)*length(corValVect)*length(theoRsqVect)*
 	nRep*length(approachVect)*length(errMeasureVect)
 	
-progressOut=paste("Starting a total of", totComb, "combinations at", date())
+progressOut=paste("Starting a total of", totComb, "combinations at", date(), "\n")
 cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
+cnt = 1
 				
 for(missingVarProp in missingVarPropVect){#############
 	for(missingObsProp in missingObsPropVect){############  
@@ -136,7 +140,6 @@ for(missingVarProp in missingVarPropVect){#############
 				}		
 				
 				testRes = list()
-				cnt = 1
 
 				for(repIdx in 1:nRep){
 					testRes[[repIdx]]=list()
@@ -174,7 +177,7 @@ for(missingVarProp in missingVarPropVect){#############
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect)
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
 				
-							progressOut=paste("Combination", cnt, "out of", totComb, "done at", date())
+							progressOut=paste("Combination", cnt, "out of", totComb, "done at", date(), "\n")
 							cat(progressOut)
 							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 							save.image(file=paste0(resultsFolderName, "/", fileName)) # save only testRes?
