@@ -1,4 +1,5 @@
-PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsilonUncertain, uncertaintySpecialTreatment=T, twoSlacks = F, linear = F, ...){
+PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsilonUncertain, uncertaintySpecialTreatment=T, twoSlacks = F,
+	 linear = F, returnAllInfo = F, ...){
 	# Creates SVR model object for Gurobi
 	# Equivalent to PolytopeSVRNoUncertainSpecialTreatment if uncertaintySpecialTreatment=F, 
 	#	provided Ccertain =C and epsilonCertain=epsilon
@@ -29,8 +30,10 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	n = length(polyList)
 	stopifnot(n>1)
 	
+	twoTimesN = 2*n
+	oneThroughN = 1:n
 	if(twoSlacks){
-		costVect = rep(0, 2*n)
+		costVect = rep(0, twoTimesN)
 	} else{
 		costVect = rep(0, n)
 	}
@@ -40,26 +43,31 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 			costVect[uncertainPoints] = Cuncertain*(1-uncertaintyVect[uncertainPoints])
 			costVect[!uncertainPoints] = Ccertain
 		} else{
-			costVect[1:n]=Ccertain
+			costVect[oneThroughN]=Ccertain
 		}
 	} else{
 		if(twoSlacks){
 			costVect[1:(2*n)]=Ccertain
 		} else{
-			costVect[1:n]=Ccertain
+			costVect[oneThroughN]=Ccertain
 		}
 	}
 	totNumRowA = 0
+	
 	pPlusOne = ncol(polyList[[1]]$A)
+	twoTimesPplusOne = pPlusOne*2
 	p = pPlusOne-1	
+	twoTimesP = 2*p
+	oneThroughP = 1:p
+	
 	wBlock = rbind(matrix(0, nrow=2, ncol=p), diag(1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p), diag(-1, nrow=p, ncol=p), matrix(0, nrow=1, ncol=p)) 
-	wZeroBlock = matrix(c(-1, 1, rep(0, pPlusOne*2)), ncol=1)
+	wZeroBlock = matrix(c(-1, 1, rep(0, twoTimesPplusOne)), ncol=1)
 	if(twoSlacks){
-		block1 = c(-1, rep(0, 1+pPlusOne*2))
-		block2 = c(0, -1, rep(0, pPlusOne*2))
+		block1 = c(-1, rep(0, 1+twoTimesPplusOne))
+		block2 = c(0, -1, rep(0, twoTimesPplusOne))
 		csiColBlock = matrix(c(block1, block2), ncol=2)
 	} else {
-		csiColBlock = matrix(c(-1, -1, rep(0, pPlusOne*2)), ncol=1)
+		csiColBlock = matrix(c(-1, -1, rep(0, twoTimesPplusOne)), ncol=1)
 	}
 	
 	for(i in 1:n){
@@ -72,48 +80,58 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 		stopifnot(nrow(A)==uvSize)
 		stopifnot(ncol(A)==pPlusOne)
 		stopifnot(all(dir=="<="))
+		aTranspose = t(a)
+		ATranspose = t(A)
 		totNumRowA = totNumRowA + uvSize
-		uBlock = rbind(t(a), matrix(0, ncol = uvSize), t(A), matrix(0, nrow=pPlusOne, ncol=uvSize))
-		vBlock = rbind(matrix(0, ncol = uvSize), t(a), matrix(0, nrow=pPlusOne, ncol=uvSize),t(A))
+		uBlock = rbind(aTranspose, matrix(0, ncol = uvSize), ATranspose, matrix(0, nrow=pPlusOne, ncol=uvSize))
+		vBlock = rbind(matrix(0, ncol = uvSize), aTranspose, matrix(0, nrow=pPlusOne, ncol=uvSize),ATranspose)
 		polyList[[i]]$uvBlock = cbind(uBlock, vBlock)
 	}
 
-	if(twoSlacks){
-		lbVect = c(rep(-Inf, pPlusOne), rep(0, 2*totNumRowA+2*n))  
-	} else{
-		lbVect = c(rep(-Inf, pPlusOne), rep(0, 2*totNumRowA+n))  
-	}
-	
-	blockRowSize = 2+2*pPlusOne
-	
-	if(twoSlacks){
-		lhsMatrix = matrix(0 , nrow = n*blockRowSize, ncol = pPlusOne+2*totNumRowA+2*n)
-	} else{
-		lhsMatrix = matrix(0 , nrow = n*blockRowSize, ncol = pPlusOne+2*totNumRowA+n)
-	}
-	
-	uVNames = NULL
-	for(i in 1:n){
-		uVNames = c(uVNames, c(paste0(paste0(rep("u", uvSize), i), 1:uvSize), paste0(paste0(rep("v", uvSize), i), 1:uvSize)))
-	}	
-	
-	if(twoSlacks){
-		varNames = c(paste0("w", 1:p), "w0", uVNames, paste0("csiPlus", 1:n), paste0("csiMinus", 1:n))
-	} else{
-		varNames = c(paste0("w", 1:p), "w0", uVNames, paste0("csi", 1:n))
-	}
-	
-	
-	senseVect = rep(c("<=", "<=", rep("=", pPlusOne*2)), n)
-	
-	coefVect = c(rep(0, pPlusOne+2*totNumRowA), costVect)
+	twoTimesTotNumRowA =  2*totNumRowA
+	oneThroughUvSize =  1:uvSize
 
 	if(twoSlacks){
-		QMatrix = diag(0, pPlusOne+2*totNumRowA+2*n, pPlusOne+2*totNumRowA+2*n)
+		lbVect = c(rep(-Inf, pPlusOne), rep(0, twoTimesTotNumRowA+twoTimesN))  
 	} else{
-		QMatrix = diag(0, pPlusOne+2*totNumRowA+n, pPlusOne+2*totNumRowA+n)
+		lbVect = c(rep(-Inf, pPlusOne), rep(0, twoTimesTotNumRowA+n))  
+	}
+	
+	blockRowSize = 2+twoTimesPplusOne
+	nTimesBlockRowSize = n*blockRowSize
+	
+	if(twoSlacks){
+		ncolLhsMatrix = pPlusOne+twoTimesTotNumRowA+twoTimesN
+	} else{
+		ncolLhsMatrix = pPlusOne+twoTimesTotNumRowA+n		
+	}
+	lhsMatrix = matrix(0 , nrow = nTimesBlockRowSize, ncol = ncolLhsMatrix)
+	
+	
+	if(returnAllInfo){
+		uVNames = NULL
+		for(i in oneThroughN){
+			uVNames = c(uVNames, c(paste0(paste0(rep("u", uvSize), i), oneThroughUvSize), paste0(paste0(rep("v", uvSize), i), oneThroughUvSize)))
+		}	
+	
+		if(twoSlacks){
+			varNames = c(paste0("w", oneThroughP), "w0", uVNames, paste0("csiPlus", oneThroughN), paste0("csiMinus", oneThroughN))
+		} else{
+			varNames = c(paste0("w", oneThroughP), "w0", uVNames, paste0("csi", oneThroughN))
+		}
+	}
+	
+	senseVect = rep(c("<=", "<=", rep("=", twoTimesPplusOne)), n)
+	
+	coefVect = c(rep(0, pPlusOne+twoTimesTotNumRowA), costVect)
+
+	if(twoSlacks){
+		QMatrix = diag(0, pPlusOne+twoTimesTotNumRowA+twoTimesN, pPlusOne+twoTimesTotNumRowA+twoTimesN)
+	} else{
+		QMatrix = diag(0, pPlusOne+twoTimesTotNumRowA+n, pPlusOne+twoTimesTotNumRowA+n)
 	}	
-	QMatrix[1:p, 1:p]= diag(1, p, p)
+	
+	QMatrix[oneThroughP, oneThroughP]= diag(1, p, p)
 	startUvCol = pPlusOne+1
 
 	uIdx = vIdx = list() 
@@ -124,14 +142,14 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	}
 	
 	rhsVect = NULL
-	for(i in 1:n){
+	for(i in oneThroughN){
 		startRow = (i-1)*blockRowSize+1
 		endRow = i*blockRowSize
 		blockRows = startRow:endRow
 		endUvCol = startUvCol + ncol(polyList[[i]]$uvBlock)-1
 		uvBlockCol = startUvCol:endUvCol
 		numUvCol = length(uvBlockCol)
-		lhsMatrix[blockRows,1:p]=wBlock
+		lhsMatrix[blockRows,oneThroughP]=wBlock
 		lhsMatrix[blockRows,pPlusOne]=wZeroBlock
 		lhsMatrix[blockRows, uvBlockCol] = polyList[[i]]$uvBlock
 		
@@ -140,16 +158,17 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 			if(uncertainPoints[i])
 				currEpsilon = currEpsilon + extraEpsilonUncertain*uncertaintyVect[i]
 		
-		rhsVect = c(rhsVect, c(currEpsilon, currEpsilon, rep(0, p), 1, rep(0,p), -1))
+		rhsVect = c(rhsVect, c(currEpsilon, currEpsilon, rep(0, p), 1, rep(0,p), -1))		
 		
 		uIdx[[i]] = uvBlockCol[1:(numUvCol/2)] 
 		vIdx[[i]] = uvBlockCol[(numUvCol/2+1):numUvCol]
 		if(twoSlacks){
-			csiPlusIdx[[i]] = pPlusOne+2*totNumRowA + 2*i-1
-			csiMinusIdx[[i]] = pPlusOne+2*totNumRowA + 2*i
+			csiPlusIdx[[i]] = pPlusOne+twoTimesTotNumRowA + 2*i-1
+			csiMinusIdx[[i]] = pPlusOne+twoTimesTotNumRowA + 2*i
 		} else{
-			csiIdx[[i]] = pPlusOne+2*totNumRowA + i
+			csiIdx[[i]] = pPlusOne+twoTimesTotNumRowA + i
 		}
+			
 		startUvCol = startUvCol + ncol(polyList[[i]]$uvBlock)
 		if(twoSlacks){
 			lhsMatrix[blockRows, c(csiPlusIdx[[i]], csiMinusIdx[[i]])] = csiColBlock
@@ -159,34 +178,46 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	}
 	
 	if(linear){
-		extraTopBlockLhs = matrix(0 , nrow=2*p, ncol=p+ncol(lhsMatrix))
-		extraLeftBlockLhs = matrix(0, nrow = nrow(lhsMatrix), ncol=p)
+		extendedLhsMatrixNcol = ncolLhsMatrix+p
+		extendedLhsMatrixNrow = nTimesBlockRowSize+twoTimesP
+		extendedLhsMatrix = matrix(0 , nrow = extendedLhsMatrixNrow, ncol = extendedLhsMatrixNcol)
+		
+		extraTopBlockLhs = matrix(0 , nrow=twoTimesP, ncol=extendedLhsMatrixNcol)
+		extraLeftBlockLhs = matrix(0, nrow = nTimesBlockRowSize, ncol=p)
 		cntRow = 1
-		for(i in 1:p){
+		for(i in oneThroughP){
 			extraTopBlockLhs[cntRow, c(i, i+p)] = -1
 			extraTopBlockLhs[cntRow+1, c(i, i+p)] = c(-1,1)
 			cntRow = cntRow+2
 		}
 		
-		extraTopBlockRhs = rep(0, 2*p)
+		extraTopBlockRhs = rep(0, twoTimesP)
 		
-		extraTopSenseVect = rep("<=", 2*p)
+		extraTopSenseVect = rep("<=", twoTimesP)
 		
 		extraLbVect = rep(-Inf, p)
 		extraCoef = rep(1, p)
-		extraRows = 2*p
 		extraColumns = p
-		extraNames = paste0("b", 1:p)
 		
-		lhsMatrix = rbind(extraTopBlockLhs, cbind(extraLeftBlockLhs,lhsMatrix))
+		#lhsMatrix = rbind(extraTopBlockLhs, cbind(extraLeftBlockLhs,lhsMatrix))
+		
+		extendedLhsMatrix[1:twoTimesP, ] = extraTopBlockLhs
+		extendedLhsMatrix[(twoTimesP+1):(extendedLhsMatrixNrow), oneThroughP] = extraLeftBlockLhs
+		extendedLhsMatrix[(twoTimesP+1):(extendedLhsMatrixNrow), pPlusOne:(extendedLhsMatrixNcol)] = lhsMatrix
+		lhsMatrix = extendedLhsMatrix
+		
 		rhsVect = c(extraTopBlockRhs, rhsVect)
 		senseVect = c(extraTopSenseVect, senseVect)
 		lbVect = c(extraLbVect, lbVect)
 		coefVect = c(extraCoef, coefVect)
-		varNames = c(extraNames, varNames)
+		
+		if(returnAllInfo){
+			extraNames = paste0("b", oneThroughP)
+			varNames = c(extraNames, varNames)
+		}
 		
 	} else{
-		extraRows = extraColumns = 0
+		extraColumns = 0
 	}
 
 	
@@ -199,25 +230,29 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	if(!linear)
 		model$Q=QMatrix
 	varIdx = list()
-	if(linear)
-		varIdx$b=1:p
-	varIdx$w = extraColumns+ 1:p
+
+	varIdx$w = extraColumns+ oneThroughP
 	varIdx$w0 = extraColumns+pPlusOne
-	varIdx$u = lapply(uIdx, function(x) {x+ extraColumns})
-	varIdx$v = lapply(vIdx, function(x) {x+ extraColumns})
-	varIdx$allU = unlist(varIdx$u)
-	varIdx$allV = unlist(varIdx$v)
-	if(twoSlacks){
-		varIdx$csiPlus = lapply(csiPlusIdx, function(x) {x+ extraColumns})
-		varIdx$csiMinus = lapply(csiMinusIdx, function(x) {x+ extraColumns})
-		varIdx$allCsiPlus = unlist(varIdx$csiPlus)
-		varIdx$allCsiMinus = unlist(varIdx$csiMinus)
-	} else{
-		varIdx$csi = lapply(csiIdx, function(x) {x+ extraColumns})
-		varIdx$allCsi = unlist(varIdx$csi)
+	if(returnAllInfo){
+		if(linear)
+			varIdx$b=oneThroughP
+		varIdx$u = lapply(uIdx, function(x) {x+ extraColumns})
+		varIdx$v = lapply(vIdx, function(x) {x+ extraColumns})
+		varIdx$allU = unlist(varIdx$u)
+		varIdx$allV = unlist(varIdx$v)
+		if(twoSlacks){
+			varIdx$csiPlus = lapply(csiPlusIdx, function(x) {x+ extraColumns})
+			varIdx$csiMinus = lapply(csiMinusIdx, function(x) {x+ extraColumns})
+			varIdx$allCsiPlus = unlist(varIdx$csiPlus)
+			varIdx$allCsiMinus = unlist(varIdx$csiMinus)
+		} else{
+			varIdx$csi = lapply(csiIdx, function(x) {x+ extraColumns})
+			varIdx$allCsi = unlist(varIdx$csi)
+		}
+		model$varNames = varNames
+		
 	}
 	model$varIdx = varIdx
-	model$varNames = varNames
 	class(model)="polytopeSVR"
 	return(model)
 }	

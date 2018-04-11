@@ -543,7 +543,7 @@ DoParListGrid = function(parValuesList){
 #	extraEpsilonUncertain = c(0,1), uncertaintySpecialTreatment = T)
 # doParListGridOut = DoParListGrid(parValuesList)
 
-DoTrainModel = function(polyList, parList){
+DoTrainModel = function(polyList, parList, returnAllVars=F){
 	# polyList: polytope representation of a data set
 	# parList: list of parameters to feed to PolytopeSVR
 	# returns list with components w and w0  resulting from model training
@@ -553,24 +553,28 @@ DoTrainModel = function(polyList, parList){
 	resGurobi <<- gurobi(model, params=gurobiParams)
 	w = GetSolution(model, resGurobi, "w")
 	w0 = GetSolution(model, resGurobi, "w0")
-	u = GetSolution(model, resGurobi, "u")
-	v = GetSolution(model, resGurobi, "v")
-	if(is.logical(parList$twoSlacks)){
-		if(parList$twoSlacks){
-			csiPlus = GetSolution(model, resGurobi, "allCsiPlus")
-			csiMinus = GetSolution(model, resGurobi, "allCsiMinus")
-			res = list(w=w, w0=w0, u=u, v=v, csiPlus=csiPlus, csiMinus=csiMinus)
-		} else{
-			csi = GetSolution(model, resGurobi, "allCsi")
-			res = list(w=w, w0=w0, u=u, v=v, csi=csi)
+	if(returnAllVars){
+		u = GetSolution(model, resGurobi, "u")
+		v = GetSolution(model, resGurobi, "v")
+		if(is.logical(parList$twoSlacks)){
+			if(parList$twoSlacks){
+				csiPlus = GetSolution(model, resGurobi, "allCsiPlus")
+				csiMinus = GetSolution(model, resGurobi, "allCsiMinus")
+				res = list(w=w, w0=w0, u=u, v=v, csiPlus=csiPlus, csiMinus=csiMinus)
+			} else{
+				csi = GetSolution(model, resGurobi, "allCsi")
+				res = list(w=w, w0=w0, u=u, v=v, csi=csi)
+			}
 		}
-	}
-	if(is.logical(parList$linear)){
-		if(parList$linear){
-			b = GetSolution(model, resGurobi, "b")
-			res$b = b
+		if(is.logical(parList$linear)){
+			if(parList$linear){
+				b = GetSolution(model, resGurobi, "b")
+				res$b = b
+			}	
 		}	
-	}	
+	} else{
+		res = list(w=w, w0=w0)
+	}
 	class(res) = "PolytopeSVRWW0"
 	return(res)
 }
