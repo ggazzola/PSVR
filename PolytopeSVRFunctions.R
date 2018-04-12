@@ -667,6 +667,7 @@ DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithT
 	# Use replaceImputedWithTrueY to replace uncertain Y values in the imputed out-of-sample with true
 	# values
 	parListRes  = list()
+	
 	for(j in 1:length(doParListGridOut)){
 		parListRes[[j]] = list()
 		currParList = parListRes[[j]]$parList = doParListGridOut[[j]]
@@ -697,6 +698,12 @@ DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithT
 			}
 			parListRes[[j]]$errorList[[i]] = DoErrorList(parListRes[[j]]$model[[i]], currFoldImputedOutDat, 
 				currFoldPolyList, currFoldMissingOutDatLogical)
+			progressOut = paste(j, "out of ", length(doParListGridOut), "parameter combinations assessed for fold", 
+				i, "out of", length(doPolyListFoldsOut), "at", date(), "\n")
+			cat(progressOut)
+			write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+				
+					
 		}		
 	}
 	#parListRes[[j]]errorList[[i]]: errorList of parameter combination j on fold i

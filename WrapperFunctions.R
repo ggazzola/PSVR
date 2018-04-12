@@ -120,6 +120,9 @@ CalculateValidationErrors = function(){
 	}
 	doErrorFoldOutInnerList  = list()
 	for(i in 1:length(doDataSplitOutOuter)){
+		innerProgressOut = paste("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "START at", date(),"\n")
+		cat(innerProgressOut)
+		write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 		#inner cross-validation
 		doErrorFoldOutInnerListTmp = list()
 		for(k in 1:length(quantOrSdPropValuesVect)){
@@ -133,7 +136,7 @@ CalculateValidationErrors = function(){
 		}
 		doErrorFoldOutInnerList[[i]] = DoExtractErrMat(doErrorFoldOut = doErrorFoldOutInnerListTmp) # these are cross validation results for the i-th training data set (divided into numFolds training/validation); doErrorFoldOutInnerList[[i]][[j]]$SomeElementName[[k]] are the results for the j-th model parameter combination, in the k-th training/validation inner partition of the i-th outer training/testing fold, with all error measures
 		
-		innerProgressOut = paste("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "done")
+		innerProgressOut = paste("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "DONE at", date(), "\n")
 		cat(innerProgressOut)
 		write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 		
@@ -179,7 +182,9 @@ CalculateTestErrors = function(){
 	errVect = NULL
 
 	for(i in 1:length(getTrainResReadyForTest)){
-
+		outerProgressOut = paste("Outer testing", i, "out of ", length(getTrainResReadyForTest), "START at", date(), "\n")
+		cat(outerProgressOut)
+		write.table(outerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 		 # best to keep this outside of the former loop, so we can't change 'what' without having to recompute everything else, which should be fixed
 	 
 		bestParList = getTrainResReadyForTest[[i]]$bestParList
@@ -213,7 +218,7 @@ CalculateTestErrors = function(){
 		currError = DoErrorList(doTrainModelOut=currModel, medianOrMeanImputOut=testMeanOrMedian, 
 			doPolyListOut=currTrainPolyList, missingDatOutLogical = missingTestDataLogical)[[errMeasure]]
 		errVect = c(errVect, currError)
-		outerProgressOut = paste("Outer testing", i, "out of ", length(getTrainResReadyForTest), "done")
+		outerProgressOut = paste("Outer testing", i, "out of ", length(getTrainResReadyForTest), "DONE at", date(), "\n")
 		cat(outerProgressOut)
 		write.table(outerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	}
