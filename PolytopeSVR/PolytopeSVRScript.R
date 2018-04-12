@@ -122,6 +122,10 @@ system(paste("cp *.R *sh", resultsFolderName))
 system(paste("cp ../*.R", resultsFolderName))
 progressFile = paste0(resultsFolderName, "/Progress.txt")
 				
+progressOut=paste("SAVING results in", resultsFolderName, "\n")
+cat(progressOut)
+write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+	
 totComb = length(missingVarPropVect)*length(missingObsPropVect)*length(corValVect)*length(theoRsqVect)*
 	nRep*length(approachVect)*length(errMeasureVect)
 	
@@ -247,3 +251,7 @@ for(missingVarProp in missingVarPropVect){#############
 	}
 }
 
+progressOut=paste("All results collected and saved in", resultsFolderName, "\n")
+cat(progressOut)
+write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+	

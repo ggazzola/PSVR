@@ -177,7 +177,7 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 			betaMat[i, ] = whichNonMissingVarsMat[i,] # arbitrary... # note that this could make a difference, when the individual input variables
 			# play different roles, have different distributions (e.g., in real data)
 			#here we use whichNonMissingVars as beta so that for the same column-index, the corresponding beta is always the same
-			innerProdVect[i]=VectToMat(datScaled[i, whichNonMissingVarsMat[i,]], F)%*%betaMat[i, ]
+			innerProdVect[i]=datScaled[i, whichNonMissingVarsMat[i,]]%*%VectToMat(betaMat[i, ], F)
 		}
 	
 		
@@ -193,8 +193,8 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 
 		probVect = numeric(n)
 		for(i in 1:n){
-			probVect[i] = exp(VectToMat(datScaled[i,whichNonMissingVarsMat[i,]],F) %*% betaMat[i, ]+resAlpha)/
-				(1+exp(VectToMat(datScaled[i,whichNonMissingVarsMat[i,]],F) %*% betaMat[i, ]+resAlpha)) 
+			probVect[i] = exp(datScaled[i,whichNonMissingVarsMat[i,]] %*% VectToMat(betaMat[i, ], F)+resAlpha)/
+				(1+exp(datScaled[i,whichNonMissingVarsMat[i,]]%*% VectToMat(betaMat[i, ], F)+resAlpha)) 
 		}
 			
 		for(i in 1:n)
