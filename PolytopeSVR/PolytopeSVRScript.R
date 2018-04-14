@@ -53,23 +53,25 @@ if(!realData){
 }
 
 parValuesList = list(
-	Ccertain=c(0, .05, .1, 1, 2, 10),#c(0,10^(-2:1)),   ##################
-	Cuncertain=c(0, .05, .1, 1, 2, 10),#c(0,10^(-2:1)), ##################
-	epsilonCertain=c(0, .5, 1, 5, 10),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = c(0, .5, 1, 5, 10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0, .05, .1, 1, 2, 5, 10),#c(0,10^(-2:1)),   ##################
+	Cuncertain=c(0, .05, .1, 1, 2, 5, 10),#c(0,10^(-2:1)), ##################
+	epsilonCertain=c(0, 0.25, .5, 1, 5, 10),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0, 0.25, .5, 1, 5, 10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 
 missingVarPropVect = 0.9#c(0.9, 0.2)########
 missingObsPropVect = 0.9# c(0.9, 0.2) ############
-quantOrSdPropValues = c(0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) ####################
+quantOrSdPropValues = c(0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) ####################
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
 errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
 	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
-approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
+#approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
+approachVect = c("doPCbb", "doMedian", "doNoMiss")  ####################
+
 AggregateTestError = mean
 replaceImputedWithTrueY = F
 
@@ -171,10 +173,16 @@ for(missingVarProp in missingVarPropVect){#############
 								testRes[[repIdx]][[errMeasure]]=list()
 
 							testRes[[repIdx]][[errMeasure]][[approach]] = list()
-							testRes[[repIdx]][[errMeasure]][[approach]]$valid = doErrorFoldOutInnerList 
+							#testRes[[repIdx]][[errMeasure]][[approach]]$valid = doErrorFoldOutInnerList #to save memory
 							SetUpTest()
 							testRes[[repIdx]][[errMeasure]][[approach]]$testSetup = getTrainResReadyForTest 
-
+							
+							testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTest = 
+								testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTest = 
+								testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTestImput = 
+								testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTrain = 
+								testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTrainImput = NULL #to save memory
+								 
 							progressOut = paste("STARTING testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "at", date(), "\n")
 							cat(progressOut)
 							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)

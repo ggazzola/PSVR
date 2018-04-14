@@ -126,13 +126,21 @@ CalculateValidationErrors = function(){
 		#inner cross-validation
 		doErrorFoldOutInnerListTmp = list()
 		for(k in 1:length(quantOrSdPropValuesVect)){
+			innerProgressOut = paste("quantOrSdProp value", k, "out of ", length(quantOrSdPropValuesVect), "START at", date(),"\n")
+			cat(innerProgressOut)
+			write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+	
 			doPolyListFoldsOutInner = DoPolyListFolds(doMultipleImputationFoldsOut=doDataSplitOutOuter[[i]]$innerSplit, quantOrSdProp=quantOrSdPropValuesVect[k], scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=approach=="doMedian", doNoMiss=approach=="doNoMiss", doSquarebbSd=approach=="doSquarebbSd", doSquarebbQuant=approach=="doSquarebbQuant") # for each training/testing pair, adding the polytope representation of the training set
 			currPcPropErrFold = DoErrorFold(doPolyListFoldsOut=doPolyListFoldsOutInner, doParListGridOut=doParListGridOut, 
 				replaceImputedWithTrueY = replaceImputedWithTrueY, approach=approach) # this calculates errors according to all error measures (see DoError)
 			for(kk in 1:length(currPcPropErrFold)){
-				currPcPropErrFold[[kk]]$parList$quantOrSdProp = quantOrSdPropValues[k]
+				currPcPropErrFold[[kk]]$parList$quantOrSdProp = quantOrSdPropValuesVect[k]
 			}
 			doErrorFoldOutInnerListTmp = c(doErrorFoldOutInnerListTmp, currPcPropErrFold) # doErrorFoldOutInnerListTmp[[j]] contains results for the j-th model parameter combination over each of the folds
+			innerProgressOut = paste("quantOrSdProp value", k, "out of ", length(quantOrSdPropValuesVect), "END at", date(),"\n")
+			cat(innerProgressOut)
+			write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+		
 		}
 		doErrorFoldOutInnerList[[i]] = DoExtractErrMat(doErrorFoldOut = doErrorFoldOutInnerListTmp) # these are cross validation results for the i-th training data set (divided into numFolds training/validation); doErrorFoldOutInnerList[[i]][[j]]$SomeElementName[[k]] are the results for the j-th model parameter combination, in the k-th training/validation inner partition of the i-th outer training/testing fold, with all error measures
 		

@@ -34,7 +34,7 @@ injectMissingness = T
 doMCAR = T #######
 
 if(!realData){
-	n = 20 # 112 is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	n = 30 # do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
 	p = 4
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
@@ -53,25 +53,23 @@ if(!realData){
 }
 
 parValuesList = list(
-	Ccertain=c(.1),   ##################
-	Cuncertain=c(.1), ##################
-	epsilonCertain=c(0,.1),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = c(0),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0, 10),#c(0,10^(-2:1)),   ##################
+	Cuncertain=c(0,  10),#c(0,10^(-2:1)), ##################
+	epsilonCertain=c(0,  10),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0,  10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 
 missingVarPropVect = 0.5#c(0.9, 0.2)########
 missingObsPropVect = 0.5# c(0.9, 0.2) ############
-quantOrSdPropValues = c(0.05,  1) ####################
+quantOrSdPropValues = c(0.01, 1) ####################
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
-errMeasureVect=c("mae", "Maxae", "cor", "maeCert", "MaxaeCert",  "corCert", "maeUncert", "MaxaeUncert", "corUncert") #########
-#c("mae", "rmse", "Maxae", "cor",  "quantEightAe", ####################
-	#"maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
-	#"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantNineAeUncert") #maeCert #maeUncert, ...
-approachVect = "doPCbb"#c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
+errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
+	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
+approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
 AggregateTestError = mean
 replaceImputedWithTrueY = F
 
@@ -118,16 +116,20 @@ if(realData){
 	fileNameRoot = paste0("NormalN", n, "P", p)
 }		
 
-resultsFolderName = paste0(fileNameRoot, currDate)
+resultsFolderName = paste0(fileNameRoot, "Date", currDate)
 system(paste("mkdir", resultsFolderName))
 system(paste("cp *.R *sh", resultsFolderName))
 system(paste("cp ../*.R", resultsFolderName))
 progressFile = paste0(resultsFolderName, "/Progress.txt")
 				
+progressOut=paste("SAVING results in", resultsFolderName, "\n")
+cat(progressOut)
+write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+	
 totComb = length(missingVarPropVect)*length(missingObsPropVect)*length(corValVect)*length(theoRsqVect)*
 	nRep*length(approachVect)*length(errMeasureVect)
 	
-progressOut=paste("Starting a total of", totComb, "combinations at", date(), "\n")
+progressOut=paste("STARTING a total of", totComb, "combinations at", date(), "\n")
 cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
@@ -157,7 +159,7 @@ for(missingVarProp in missingVarPropVect){#############
 						fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
 							"Appr", appShort, "Date", currDate, ".RData", sep="")
 							
-						progressOut = paste("Starting cross-validation of", fileName, "Rep", repIdx, "...\n")
+						progressOut = paste("STARTING cross-validation of", fileName, "Rep", repIdx, "at", date(), "\n")
 						cat(progressOut)
 						write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 						
@@ -173,7 +175,7 @@ for(missingVarProp in missingVarPropVect){#############
 							SetUpTest()
 							testRes[[repIdx]][[errMeasure]][[approach]]$testSetup = getTrainResReadyForTest 
 
-							progressOut = paste("Starting testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "...\n")
+							progressOut = paste("STARTING testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "at", date(), "\n")
 							cat(progressOut)
 							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 						
@@ -185,7 +187,7 @@ for(missingVarProp in missingVarPropVect){#############
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect)
 							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
 				
-							progressOut=paste("Combination", cnt, "out of", totComb, "done at", date(), "\n")
+							progressOut=paste("Combination", cnt, "out of", totComb, "DONE at", date(), "\n")
 							cat(progressOut)
 							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 							save.image(file=paste0(resultsFolderName, "/", fileName)) # save only testRes?
@@ -249,3 +251,7 @@ for(missingVarProp in missingVarPropVect){#############
 	}
 }
 
+progressOut=paste("All results collected and saved in", resultsFolderName, "\n")
+cat(progressOut)
+write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+	
