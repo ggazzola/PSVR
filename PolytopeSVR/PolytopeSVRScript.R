@@ -63,7 +63,7 @@ parValuesList = list(
 
 missingVarPropVect = 0.9#c(0.9, 0.2)########
 missingObsPropVect = 0.9# c(0.9, 0.2) ############
-quantOrSdPropValues = c(0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) ####################
+quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) ####################
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
@@ -76,7 +76,7 @@ AggregateTestError = mean
 replaceImputedWithTrueY = F
 
 maxUncertainDims = "all" # NULL #("all" considers the p+1 dims; NULL considers the actual max number of missing dims in all the data )
-nRep=1 # # MUST DO MORE REPEATS, the results don't seem stable
+repVect=1:1 # # MUST DO MORE REPEATS, the results don't seem stable
 
 if(T){
 	missingY = F # Do not modify this
@@ -94,7 +94,7 @@ for(missingVarProp in missingVarPropVect){#############
 	for(missingObsProp in missingObsPropVect){############  
 		for(corVal in corValVect){ #################
 			for(theoRsq in theoRsqVect){
-				for(repIdx in 1:nRep){
+				for(repIdx in repVect){
 					rejectSilently=F	
 					set.seed(repIdx)
 					GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
@@ -129,7 +129,7 @@ cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
 totComb = length(missingVarPropVect)*length(missingObsPropVect)*length(corValVect)*length(theoRsqVect)*
-	nRep*length(approachVect)*length(errMeasureVect)
+	length(repVect)*length(approachVect)*length(errMeasureVect)
 	
 progressOut=paste("STARTING a total of", totComb, "combinations at", date(), "\n")
 cat(progressOut)
@@ -147,7 +147,7 @@ for(missingVarProp in missingVarPropVect){#############
 				
 				testRes = list()
 
-				for(repIdx in 1:nRep){
+				for(repIdx in repVect){
 					testRes[[repIdx]]=list()
 					rejectSilently=T	
 					set.seed(repIdx)
@@ -207,52 +207,7 @@ for(missingVarProp in missingVarPropVect){#############
 				}
 				
 				
-				if(F){
-					for (errMeasure in errMeasureVect){
-						for(approach in approachVect){
-							cat(approach, errMeasure, testRes[[1]][[errMeasure]][[approach]]$testErrorsAggregate, "\n")
-						}
-					}
-				}
-
-
-				if(F){
-					testResMedian = testRes
-					for (errMeasure in errMeasureVect){
-						for(approach in approachVect){
-							testResMedian[[1]][[errMeasure]][[approach]]$testErrorsAggregate = median(testResMedian[[1]][[errMeasure]][[approach]]$testErrors)
-						}
-					}
-				}
-
-	# for doMedian, the Cuncertain is irrelevant!
-	#set.seed(seed)
-
-	#totComb = nRep*length(errMeasureVect)*length(approachVect)
-	#testRes = list()
-	#cnt = 0
-	#for(rep in 1:nRep){
-		#	testRes[[rep]]=list()
-		#	cat("Starting data generation, outer/inner splitting, and imputation, rep =", rep, "...\n")
-		#	GenerateData()
-		#	MultiplyImpute()
-		#	for(errMeasure in errMeasureVect){
-			#		testRes[[rep]][[errMeasure]]=list()
-			#		for(approach in approachVect){
-				#			cat("Starting inner cross-validation, rep =", rep, ", errMeasure =", errMeasure,", approach =", approach,  "...\n")
-				#			CalculateValidationErrors()
-				#			SetUpTest()
-				#			cat("Starting inner testing, rep =", rep, ", errMeasure =", errMeasure, ", approach =", approach, "...\n")
-				#			CalculateTestErrors() # before this, can change 'approach'
-				#			stopifnot(length(errVect)==numFolds)
-				#			testRes[[rep]][[errMeasure]][[approach]]=AggregateTestError(errVect)
-				#			cnt = cnt+1
-				#			if(round(cnt/totComb*100)%%10==0){
-					#				cat(cnt/totComb*100, "% done\n")
-					#			}
-					#		}
-					#	}
-					#}
+				
 
 			}
 		}
@@ -263,3 +218,21 @@ progressOut=paste("All results collected and saved in", resultsFolderName, "\n")
 cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
+
+if(F){
+	for (errMeasure in errMeasureVect){
+		for(approach in approachVect){
+			cat(approach, errMeasure, testRes[[1]][[errMeasure]][[approach]]$testErrorsAggregate, "\n")
+		}
+	}
+}
+
+
+if(F){
+	testResMedian = testRes
+	for (errMeasure in errMeasureVect){
+		for(approach in approachVect){
+			testResMedian[[1]][[errMeasure]][[approach]]$testErrorsAggregate = median(testResMedian[[1]][[errMeasure]][[approach]]$testErrors)
+		}
+	}
+}
