@@ -10,9 +10,14 @@ source("../OneVsTwoSlackSVR.R")
 source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
 dataFolder="../Data/"
-#source("../Volume.R")
 
-#######MissObs0.9Var0.25Cor0.9.RData: why are results not as good?
+realData = F
+injectMissingness = T
+doMCAR = T 
+missingVarProp = 0.3
+missingObsProp = 0.3
+corVal = 0.9
+
 
 #######noMissDat --> the best testing parameters for uncertain data should be chosen based on the best for certain predictions: WHY? you can still calculate validation performance according to uncertain data only...
 
@@ -26,82 +31,69 @@ maxGenerateDataAttempts = 20
 numFolds = 3#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
-maxIter = 3 ################ try with small numbers of these two, to verify if imputation is possible first
+maxIter = 2 ################ try with small numbers of these two, to verify if imputation is possible first
 numImput = 5 ###############
 
-realData = F
-injectMissingness = T
-doMCAR = T #######
+AggregateTestError = mean
+replaceImputedWithTrueY = F
+
+maxUncertainDims = "all" # NULL #("all" considers the p+1 dims; NULL considers the actual max number of missing dims in all the data )
+
+if(T){
+	missingY = F # Do not modify this
+}
 
 if(!realData){
 	n = 30 # do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
 	p = 4
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
-
 	trueW = 1:p
 	trueW0 = p/2
-	corValVect = 0.9#c(0.9, 0.5, 0) ####################
-	theoRsqVect = 0.95#c(0.95, 0.9, 0.8) ####################
-
+	theoRsq = 0.95
+	stopifnot(injectMissingness)
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
 	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
 	realDataFileName = "Automobile.RData" # kept
-	corValVect = "irrelevant"
-	theoRsqVect = "irrelevant" 
+	corVal = "irrelevant"
+	theoRsq = "irrelevant" 
+}
+
+if(!injectMissingness){
+	cat("Ignoring missingVarProp and missingObsProp (setting to 0), and doMCAR, since injectMissingness=F\n")
+	missingVarProp=0	
+	missingObsProp=0
+	doMCAR = "irrelevant"
 }
 
 parValuesList = list(
-	Ccertain=c(0, 10),#c(0,10^(-2:1)),   ##################
-	Cuncertain=c(0,  10),#c(0,10^(-2:1)), ##################
-	epsilonCertain=c(0,  10),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = c(0,  10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0),#c(0,10^(-2:1)),   ##################
+	Cuncertain=c(0),#c(0,10^(-2:1)), ##################
+	epsilonCertain=c(0),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0, 10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 
-missingVarPropVect = 0.5#c(0.9, 0.2)########
-missingObsPropVect = 0.5# c(0.9, 0.2) ############
-quantOrSdPropValues = c(0.01, 1) ####################
+
+quantOrSdPropValues = c(0) ####################
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
-errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
-	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
-approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
-AggregateTestError = mean
-replaceImputedWithTrueY = F
-
-maxUncertainDims = "all" # NULL #("all" considers the p+1 dims; NULL considers the actual max number of missing dims in all the data )
-nRep=1 # # MUST DO MORE REPEATS, the results don't seem stable
-
-if(T){
-	missingY = F # Do not modify this
-}
+errMeasureVect=c("mae","MaxaeCert",  "quantEightAeUncert") #maeCert #maeUncert, ...
+#approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
+approachVect = c("doPCbb", "doMedian", "doNoMiss")  ####################
 
 
-if(!injectMissingness){
-	cat("Ignoring missingVarPropVect and missingObsPropVect (setting to 0), and doMCAR, since injectMissingness=F\n")
-	missingVarPropVect=0	
-	missingObsPropVect=0
-	doMCAR = "irrelevant"
-}
+repVect=1:1 # # MUST DO MORE REPEATS, the results don't seem stable
 
-for(missingVarProp in missingVarPropVect){#############
-	for(missingObsProp in missingObsPropVect){############  
-		for(corVal in corValVect){ #################
-			for(theoRsq in theoRsqVect){
-				for(repIdx in 1:nRep){
-					rejectSilently=F	
-					set.seed(repIdx)
-					GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
-					if(givenUp)
-						stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
-				}
-			}
-		}
-	}
+for(repIdx in repVect){
+	rejectSilently=F	
+	set.seed(repIdx)
+	GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
+	if(givenUp)
+		stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
 }
 
 cat("Data partitions containing at least one missing point and one non-missing point can be generated\n")
@@ -116,6 +108,15 @@ if(realData){
 	fileNameRoot = paste0("NormalN", n, "P", p)
 }		
 
+if(is.logical(doMCAR)){
+	missMechString = ifelse(doMCAR, "MCAR", "MAR")
+} else{
+	stopifnot(doMCAR=="irrelevant")
+	missMechString = "Irrel" 
+}
+
+fileNameRoot = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, "MissMech", missMechString, "Meth", method)
+
 resultsFolderName = paste0(fileNameRoot, "Date", currDate)
 system(paste("mkdir", resultsFolderName))
 system(paste("cp *.R *sh", resultsFolderName))
@@ -126,8 +127,7 @@ progressOut=paste("SAVING results in", resultsFolderName, "\n")
 cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
-totComb = length(missingVarPropVect)*length(missingObsPropVect)*length(corValVect)*length(theoRsqVect)*
-	nRep*length(approachVect)*length(errMeasureVect)
+totComb = length(repVect)*length(approachVect)*length(errMeasureVect)
 	
 progressOut=paste("STARTING a total of", totComb, "combinations at", date(), "\n")
 cat(progressOut)
@@ -135,123 +135,95 @@ write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progr
 	
 cnt = 1
 				
-for(missingVarProp in missingVarPropVect){#############
-	for(missingObsProp in missingObsPropVect){############  
-		for(corVal in corValVect){ #################
-			for(theoRsq in theoRsqVect){
-				if(realData){
-					fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq)
-				}		
-				
-				testRes = list()
 
-				for(repIdx in 1:nRep){
-					testRes[[repIdx]]=list()
-					rejectSilently=T	
-					set.seed(repIdx)
-					GenerateData()
-					MultiplyImpute()
-					gc()
+if(!realData){
+	fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq)
+}		
 
-					for(approach in approachVect){
-						appShort = sub("do", "", approach)
-						appShort = sub("Square", "Sq", appShort)
-						fileName = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, ifelse(doMCAR, "MCAR", "MAR"), "Meth", method, 
-							"Appr", appShort, "Date", currDate, ".RData", sep="")
-							
-						progressOut = paste("STARTING cross-validation of", fileName, "Rep", repIdx, "at", date(), "\n")
-						cat(progressOut)
-						write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
-						
-						CalculateValidationErrors() # errors calculated with all possible error measures
-						gc()
-						for(errMeasure in errMeasureVect){
+testRes = list()
 
-							if(is.null(testRes[[repIdx]][[errMeasure]]))
-								testRes[[repIdx]][[errMeasure]]=list()
+for(repIdx in repVect){
+	testRes[[repIdx]]=list()
+	rejectSilently=T	
+	set.seed(repIdx)
+	GenerateData()
+	MultiplyImpute()
+	gc()
 
-							testRes[[repIdx]][[errMeasure]][[approach]] = list()
-							testRes[[repIdx]][[errMeasure]][[approach]]$valid = doErrorFoldOutInnerList 
-							SetUpTest()
-							testRes[[repIdx]][[errMeasure]][[approach]]$testSetup = getTrainResReadyForTest 
+	for(approach in approachVect){
+		appShort = sub("do", "", approach)
+		appShort = sub("Square", "Sq", appShort)
+		fileName = paste0(fileNameRoot, "Appr", appShort, "Date", currDate, ".RData", sep="")
+			
+		progressOut = paste("STARTING cross-validation of", fileName, "Rep", repIdx, "at", date(), "\n")
+		cat(progressOut)
+		write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+		
+		CalculateValidationErrors() # errors calculated with all possible error measures
+		gc()
+		for(errMeasure in errMeasureVect){
 
-							progressOut = paste("STARTING testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "at", date(), "\n")
-							cat(progressOut)
-							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
-						
-							CalculateTestErrors() # choose best model based on errMeasure, train new model on outer training data, and test it
-							gc()
-							testRes[[repIdx]][[errMeasure]][[approach]]$testErrors = errVect 
+			if(is.null(testRes[[repIdx]][[errMeasure]]))
+				testRes[[repIdx]][[errMeasure]]=list()
 
-							stopifnot(length(errVect)==numFolds)
-							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect)
-							testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
-				
-							progressOut=paste("Combination", cnt, "out of", totComb, "DONE at", date(), "\n")
-							cat(progressOut)
-							write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
-							save.image(file=paste0(resultsFolderName, "/", fileName)) # save only testRes?
-				
-							cnt = cnt+1
-							
-						}
-					}
-				}
-				
-				
-				if(F){
-					for (errMeasure in errMeasureVect){
-						for(approach in approachVect){
-							cat(approach, errMeasure, testRes[[1]][[errMeasure]][[approach]]$testErrorsAggregate, "\n")
-						}
-					}
-				}
+			testRes[[repIdx]][[errMeasure]][[approach]] = list()
+			#testRes[[repIdx]][[errMeasure]][[approach]]$valid = doErrorFoldOutInnerList #to save memory
+			SetUpTest()
+			testRes[[repIdx]][[errMeasure]][[approach]]$testSetup = getTrainResReadyForTest 
+			
+			testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTest = 
+				testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTest = 
+				testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTestImput = 
+				testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTrain = 
+				testRes[[repIdx]][[errMeasure]][[approach]]$testSetup$currTrainImput = NULL #to save memory
+				 
+			progressOut = paste("STARTING testing on", fileName, "Rep", repIdx, "Error Measure", errMeasure, "at", date(), "\n")
+			cat(progressOut)
+			write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+		
+			CalculateTestErrors() # choose best model based on errMeasure, train new model on outer training data, and test it
+			gc()
+			testRes[[repIdx]][[errMeasure]][[approach]]$testErrors = errVect 
 
+			stopifnot(length(errVect)==numFolds)
+			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect)
+			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
 
-				if(F){
-					testResMedian = testRes
-					for (errMeasure in errMeasureVect){
-						for(approach in approachVect){
-							testResMedian[[1]][[errMeasure]][[approach]]$testErrorsAggregate = median(testResMedian[[1]][[errMeasure]][[approach]]$testErrors)
-						}
-					}
-				}
+			progressOut=paste("Combination", cnt, "out of", totComb, "DONE at", date(), "\n")
+			cat(progressOut)
+			write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
+			save.image(file=paste0(resultsFolderName, "/", fileName)) # save only testRes?
 
-	# for doMedian, the Cuncertain is irrelevant!
-	#set.seed(seed)
-
-	#totComb = nRep*length(errMeasureVect)*length(approachVect)
-	#testRes = list()
-	#cnt = 0
-	#for(rep in 1:nRep){
-		#	testRes[[rep]]=list()
-		#	cat("Starting data generation, outer/inner splitting, and imputation, rep =", rep, "...\n")
-		#	GenerateData()
-		#	MultiplyImpute()
-		#	for(errMeasure in errMeasureVect){
-			#		testRes[[rep]][[errMeasure]]=list()
-			#		for(approach in approachVect){
-				#			cat("Starting inner cross-validation, rep =", rep, ", errMeasure =", errMeasure,", approach =", approach,  "...\n")
-				#			CalculateValidationErrors()
-				#			SetUpTest()
-				#			cat("Starting inner testing, rep =", rep, ", errMeasure =", errMeasure, ", approach =", approach, "...\n")
-				#			CalculateTestErrors() # before this, can change 'approach'
-				#			stopifnot(length(errVect)==numFolds)
-				#			testRes[[rep]][[errMeasure]][[approach]]=AggregateTestError(errVect)
-				#			cnt = cnt+1
-				#			if(round(cnt/totComb*100)%%10==0){
-					#				cat(cnt/totComb*100, "% done\n")
-					#			}
-					#		}
-					#	}
-					#}
-
-			}
+			cnt = cnt+1
+			
 		}
 	}
 }
+				
+				
+				
+
+
 
 progressOut=paste("All results collected and saved in", resultsFolderName, "\n")
 cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
+
+if(F){
+	for (errMeasure in errMeasureVect){
+		for(approach in approachVect){
+			cat(approach, errMeasure, testRes[[1]][[errMeasure]][[approach]]$testErrorsAggregate, "\n")
+		}
+	}
+}
+
+
+if(F){
+	testResMedian = testRes
+	for (errMeasure in errMeasureVect){
+		for(approach in approachVect){
+			testResMedian[[1]][[errMeasure]][[approach]]$testErrorsAggregate = median(testResMedian[[1]][[errMeasure]][[approach]]$testErrors)
+		}
+	}
+}
