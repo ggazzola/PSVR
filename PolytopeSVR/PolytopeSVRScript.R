@@ -32,7 +32,7 @@ numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
 maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
-numImput = 20 ###############
+numImput = 50 ###############
 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
@@ -77,7 +77,7 @@ parValuesList = list(
 	)	
 
 
-quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) ####################
+quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) # THIS WILL BE "TRIMMED" BELOW, BASED ON n and numFolds
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
@@ -93,9 +93,18 @@ for(repIdx in repVect){
 	rejectSilently=F	
 	set.seed(repIdx)
 	GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
+	if(realData){
+		n = nrow(dat)
+		p = ncol(dat)-1
+	}
 	if(givenUp)
 		stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
+	
 }
+
+innerTrainingN = floor(n*(1-1/numFolds)^2)
+uselessQuanOrSdPropValuesIdx = duplicated(round(innerTrainingN* quantOrSdPropValues))
+quantOrSdPropValues = quantOrSdPropValues[!uselessQuanOrSdPropValuesIdx]
 
 cat("Data partitions containing at least one missing point and one non-missing point can be generated\n")
 cat("Proceeding to actual experiments...\n\n\n")

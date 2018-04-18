@@ -214,7 +214,14 @@ CalculateTestErrors = function(){
 			testMeanOrMedian = currTestImput$meanBoxImputDat
 		} else{
 			stopifnot(bestParList$twoSlacks==F)
-			testMeanOrMedian = currTestImput$medianImputDat
+			
+			if(approach%in%c("doMedian")){
+				testMeanOrMedian = currTestImput$medianImputDat
+			} else if(approach%in%c("doPCbb", "doNoMiss")){
+				testMeanOrMedian = currTestImput$medianOrientedBoxImputDat
+			} else{
+				stop("Don't know what to do")
+			}
 		}
 	
 		#if(scaleData)

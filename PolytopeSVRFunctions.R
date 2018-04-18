@@ -281,7 +281,35 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 	medianImputDat = apply(simplify2array(imputDatList), 1:2, median) #1:2 --> rows and columns
 	rownames(medianImputDat) = NULL
 	
-	res = list(imputDatList=imputDatList, medianImputDat = medianImputDat, meanBoxImputDat=meanBoxImputDat)
+	
+	medianOrientedBoxImputDat = matrix( , nrow=n, ncol = ncol(missDat))
+	colnames(medianOrientedBoxImputDat)= colnames(medianImputDat)
+	for(i in 1:n){
+		#this loop is a small modification of an analogous loop in DOPOLYLIST()
+		currPoint = missDat[i,] 
+		if(any(is.na(currPoint))){
+			singleMissDatMultImput = NULL
+			for(j in 1:length(imputDatList)){
+				singleMissDatMultImput = rbind(singleMissDatMultImput, imputDatList[[j]][i,]) # stacking multiple imputations for i-th point
+			} 
+			singleMissDatMultImput = as.matrix(singleMissDatMultImput)
+			if(all(apply(singleMissDatMultImput, 2, sd)==0)){
+				cat("WARNING: All imputations are identical\n")
+				currPointConstantImput = singleMissDatMultImput[1,] # any row is ok, since they are all equal
+				singleDatRes = FixedPointConstraints(currPointConstantImput) # fixed-point bounding box around constant imputation
+				currUncertainty = 0
+			} else{
+				singleDatRes = PCConstraintsFull(dat=singleMissDatMultImput, propIn=0, getMedian=T) # extracting bounding box for i-th point's multiple imputations
+
+			}
+		} else{
+			singleDatRes = currPoint
+		}
+		medianOrientedBoxImputDat[i, ] = singleDatRes
+	}	
+	
+	res = list(imputDatList=imputDatList, medianImputDat = medianImputDat, 
+		medianOrientedBoxImputDat=medianOrientedBoxImputDat, meanBoxImputDat=meanBoxImputDat)
 	return(res)
 }
 
@@ -402,14 +430,16 @@ DoPolyList = function(missDat, imputDatList, medianImputDat, quantOrSdProp, scal
 		upperQuantMissDat = apply(missDat, 2, quantile, probs=upperQuantile, type=1, na.rm=T) 
 	}
 	for(i in 1:n){
-		currPoint = missDat[i,]
+		# A SIMILAR LOOP IS USED IN DOMULTIPLEIMPUTATION() 
+		
+		currPoint = missDat[i,] # this is not yet scaled, even if scale = T
 		if(any(is.na(currPoint))){
 			if(doOrientedbb){
 				stopifnot(missDatHasNAs) # just for debugging
 				singleMissDatMultImput = NULL
 				for(j in 1:length(imputDatList)){
 					singleMissDatMultImput = rbind(singleMissDatMultImput, imputDatList[[j]][i,]) # stacking multiple imputations for i-th point
-				}
+				} #note that these imputations are pre-scaled above, if scale = T
 				singleMissDatMultImput = as.matrix(singleMissDatMultImput)
 				if(all(apply(singleMissDatMultImput, 2, sd)==0)){
 					cat("WARNING: All imputations are identical\n")
@@ -680,8 +710,12 @@ DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithT
 			currFoldMissingDatOut = doPolyListFoldsOut[[i]]$outDat$missing
 			if(approach %in%c("doSquarebbQuant", "doSquarebbSd")){
 				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$meanBoxImputDat
-			} else{
+			} else if(approach%in%c("doMedian")){
 				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$medianImputDat
+			} else if(approach%in%c("doPCbb", "doNoMiss")){
+				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$medianOrientedBoxImputDat
+			} else{
+				stop("Don't know what to do")
 			}
 			currFoldMissingOutDatLogical = apply(currFoldMissingDatOut, 1, function(x){any(is.na(x))})  # T for out-of-sample points with missing values
 			stopifnot("Y"==colnames(currFoldImputedOutDat)[ncol(currFoldImputedOutDat)])
@@ -780,7 +814,7 @@ DoMinMaxPrediction = function(polyListOutIndiv,doTrainModelOut, w=NULL, w0=NULL)
 		w0=doTrainModelOut$w0
 	}
 	p=length(w)
-	stopifnot(p==ncol(polyListOutIndiv$A)-1)
+	stopifnot(p==(ncol(polyListOutIndiv$A)-1))
 	pPlusOne = p+1
 	
 	pPlusOneCol = polyListOutIndiv$A[,pPlusOne]

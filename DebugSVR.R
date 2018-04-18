@@ -7,61 +7,83 @@ source("../PolytopeSVRFunctions.R")
 source("../OneVsTwoSlackSVR.R")
 source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
-#source("../Volume.R")
-
-seed=1
-
-set.seed(seed)
-
-numFolds = 2
-scaleData = T
+dataFolder="../Data/"
 realData = F
 injectMissingness = T
-doMCAR = T ###
-rejectSilently = F
-maxGenerateDataAttempts=10
-
-method = "pmm"
-maxIter = 5
-numImput = 11
-
-n = 240
-p = 10
-meanVect = rep(0,p) 
-stdVect = rep(1, p)
-corVal = .5 
-theoRsq = 0.9
-
-missingVarProp = 0.8
-missingObsProp = 0.8
-
-trueW = -(1:p)
-trueW0 = p/2
-noiseLevel = 1
-
-parValuesList = list(
-	Ccertain=0, 
-	Cuncertain=10^(-1:1),
-	epsilonCertain=10^(-1:1),
-	extraEpsilonUncertain =10^(-1:1), 
-	uncertaintySpecialTreatment = T
-)	
+doMCAR = T 
+missingVarProp = 0.5
+missingObsProp = 0.75
+corVal = 0.2
 
 
-errMeasureVect=c("mae", "rmse", "Maxae") #maeCert #maeUncert
-approachVect = c("doPCbb", "doMedian") #doSquarebb
+#######noMissDat --> the best testing parameters for uncertain data should be chosen based on the best for certain predictions: WHY? you can still calculate validation performance according to uncertain data only...
+
+#### are the extraEpsilonUncertain and Cuncertain parameters playing a role?
+
+# we don't need to have a model that works well on both certain and uncertain; we need one that does better at least one of those; for the other thing
+# we can use a standard model, etc.
+
+
+maxGenerateDataAttempts = 20
+numFolds = 3#####################
+scaleData = T
+method = "pmm" #norm, cart, rf
+maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
+numImput = 50 ###############
+
 AggregateTestError = mean
 replaceImputedWithTrueY = F
 
 maxUncertainDims = "all" # NULL #("all" considers the p+1 dims; NULL considers the actual max number of missing dims in all the data )
 
-
-nRep=1
-
 if(T){
 	missingY = F # Do not modify this
 }
 
+if(!realData){
+	n = 30 # do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	p = 4
+	meanVect = rep(0,p) 
+	stdVect = rep(1, p)
+	trueW = 1:p
+	trueW0 = p/2
+	theoRsq = 0.95
+	stopifnot(injectMissingness)
+} else{
+	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
+	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
+	realDataFileName = "Automobile.RData" # kept
+	corVal = "irrelevant"
+	theoRsq = "irrelevant" 
+}
+
+if(!injectMissingness){
+	cat("Ignoring missingVarProp and missingObsProp (setting to 0), and doMCAR, since injectMissingness=F\n")
+	missingVarProp=0	
+	missingObsProp=0
+	doMCAR = "irrelevant"
+}
+
+parValuesList = list(
+	Ccertain=c(0),#c(0,10^(-2:1)),   ##################
+	Cuncertain=c(0),#c(0,10^(-2:1)), ##################
+	epsilonCertain=c(0),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0, 10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	uncertaintySpecialTreatment = T,
+	linear =T
+	)	
+
+
+quantOrSdPropValues = c(0) ####################
+#errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
+#"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
+#"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
+errMeasureVect=c("mae","MaxaeCert",  "quantEightAeUncert") #maeCert #maeUncert, ...
+#approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
+approachVect = c("doPCbb", "doMedian", "doNoMiss")  ####################
+
+
+repVect=1:1 # # MUST DO MORE REPEATS, the results don't seem stable
 
 GenerateData()
 MultiplyImpute()
@@ -72,9 +94,57 @@ datImput = doDataSplitOutOuter[[1]]$inDat$imputed
 
 #imputDatList, medianImputDat, quantOrSdProp, scaleData, maxUncertainDims, doMedian
 
-polyList = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
-	quantOrSdProp=0.1, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=F, doNoMiss=F, doSquarebbSd=F, doSquarebbQuant=F) 
+polyListPC = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
+	quantOrSdProp=0, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=F, doNoMiss=F, doSquarebbSd=F, doSquarebbQuant=F) 
 	
+polyListMed = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
+	quantOrSdProp=0, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=T, doNoMiss=F, doSquarebbSd=F, doSquarebbQuant=F) 
+	
+parList = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F, linear=T) 
+
+
+
+polyListPCSmall = polyListMedSmall = list()
+polyListPCSmall[[1]] = polyListPC[[1]]
+polyListMedSmall[[1]] = polyListMed[[1]]
+
+for(i in 2:6){
+	polyListPCSmall[[i]] = polyListPC[[i]]
+	polyListMedSmall[[i]] = polyListMed[[i]]
+	modelPC = DoTrainModel(polyListPCSmall, parList)
+	modelMed = DoTrainModel(polyListMedSmall, parList)
+	cat("Different with", i, "points:", sum(abs(c(modelPC$w, modelPC$w0)- c(modelMed$w, modelMed$w0))), "\n")
+	
+}
+
+
+
+
+datStructure = doDataSplitOutOuter[[1]]
+errorMedian = NULL
+errorOrientedMedian = NULL
+imputDatList = datStructure$inDat$imputed$imputDatList
+
+for(index in 1:nrow(datStructure$inDat$original)){
+	truePoint = datStructure$inDat$original[index,]
+	missingPoint = datStructure$inDat$missing[index,]
+	imputMat = GetMultipleImputSinglePoint(index, imputDatList)
+	medianImput =  datStructure$inDat$imputed$medianImputDat[index,]
+	medianOrientedImput =  datStructure$inDat$imputed$medianOrientedBoxImputDat[index,]
+	errMedian= abs(truePoint-medianImput)
+	errorMedian[index] = mean(errMedian[is.na(missingPoint)])
+	errOrientedMedian= abs(truePoint-medianOrientedImput)
+	errorOrientedMedian[index] = mean(errOrientedMedian[is.na(missingPoint)])
+}
+
+
+
+
+modelPC = DoTrainModel(polyListPCSmall, parList)
+modelMed = DoTrainModel(polyListMedSmall, parList)
+
+DoTrainModel(polyList, parListNonLinear)
+
 polyListBak = polyList
 polyList=list()
 polyList[[1]]=polyListBak[[1]]

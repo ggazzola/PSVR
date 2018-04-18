@@ -361,6 +361,8 @@ MaxAE =  function(trueY, predY, toInclude=rep(T, length(predY))) {
 	return(res)
 }
 
+
+
 QuantNineAE =  function(trueY, predY, toInclude=rep(T, length(predY))) {
 	stopifnot(length(trueY)==length(predY))
 	stopifnot(length(trueY)==length(toInclude))
@@ -399,6 +401,17 @@ QuantSevenAE =  function(trueY, predY, toInclude=rep(T, length(predY))) {
 	res = as.numeric(quantile(abs(trueY-predY),.7))
 	return(res)
 }
+
+
+GetMultipleImputSinglePoint = function(index, imputDatList){
+	singleMissDatMultImput = NULL
+	for(j in 1:length(imputDatList)){
+		singleMissDatMultImput = rbind(singleMissDatMultImput, imputDatList[[j]][index,]) # stacking multiple imputations for i-th point
+	}
+	return(singleMissDatMultImput)	 
+}
+
+
 
 #dims = 12
 #Cov <- matrix(0, dims, dims) 

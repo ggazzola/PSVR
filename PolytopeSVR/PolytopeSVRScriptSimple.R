@@ -14,8 +14,8 @@ dataFolder="../Data/"
 realData = F
 injectMissingness = T
 doMCAR = T 
-missingVarProp = 0.3
-missingObsProp = 0.3
+missingVarProp = 0.5
+missingObsProp = 0.5
 corVal = 0.9
 
 
@@ -31,7 +31,7 @@ maxGenerateDataAttempts = 20
 numFolds = 3#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
-maxIter = 2 ################ try with small numbers of these two, to verify if imputation is possible first
+maxIter = 3 ################ try with small numbers of these two, to verify if imputation is possible first
 numImput = 5 ###############
 
 AggregateTestError = mean
@@ -69,19 +69,20 @@ if(!injectMissingness){
 
 parValuesList = list(
 	Ccertain=c(0),#c(0,10^(-2:1)),   ##################
-	Cuncertain=c(0),#c(0,10^(-2:1)), ##################
+	Cuncertain=c(0, 1),#c(0,10^(-2:1)), ##################
 	epsilonCertain=c(0),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = c(0, 10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	extraEpsilonUncertain = c(0,10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 
 
-quantOrSdPropValues = c(0) ####################
+quantOrSdPropValues = c(0, 0.0001,  1) # THIS WILL BE "TRIMMED" BELOW, BASED ON n and numFolds
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
-errMeasureVect=c("mae","MaxaeCert",  "quantEightAeUncert") #maeCert #maeUncert, ...
+errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
+	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
 #approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
 approachVect = c("doPCbb", "doMedian", "doNoMiss")  ####################
 
@@ -92,9 +93,18 @@ for(repIdx in repVect){
 	rejectSilently=F	
 	set.seed(repIdx)
 	GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
+	if(realData){
+		n = nrow(dat)
+		p = ncol(dat)-1
+	}
 	if(givenUp)
 		stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
+	
 }
+
+innerTrainingN = floor(n*(1-1/numFolds)^2)
+uselessQuanOrSdPropValuesIdx = duplicated(round(innerTrainingN* quantOrSdPropValues))
+quantOrSdPropValues = quantOrSdPropValues[!uselessQuanOrSdPropValuesIdx]
 
 cat("Data partitions containing at least one missing point and one non-missing point can be generated\n")
 cat("Proceeding to actual experiments...\n\n\n")

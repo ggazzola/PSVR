@@ -141,7 +141,7 @@ DiagonalConstraints = function(centerVect, halfSideVect, halfSideMultiplier, slo
 	return(res)	
 }
 
-PCConstraintsFull = function(dat, propIn = .8,  projectDimsLogical = NULL){
+PCConstraintsFull = function(dat, propIn = .8,  projectDimsLogical = NULL, getMedian=FALSE){
 	#, preCalcPc = NULL
 	
 	#projectDimsLogical: T for variables along which the pc should be calculated
@@ -197,7 +197,10 @@ PCConstraintsFull = function(dat, propIn = .8,  projectDimsLogical = NULL){
 
 		fullDimPc[uncertainDimsLogical, uncertainDimsLogical] = pc$rotation
 		fullDimPc[!uncertainDimsLogical, !uncertainDimsLogical] = diag(1, nrow=numCertainDims, ncol=numCertainDims)
-		fullDimPc = cbind(fullDimPc[, uncertainDimsLogical], fullDimPc[, !uncertainDimsLogical])
+		fullDimPc = cbind(fullDimPc[, uncertainDimsLogical], fullDimPc[, !uncertainDimsLogical]) #???? WHAT IS THIS FOR? JUST Rearrangement? Yes,
+		# b/c the principal components are the columns of fullDimPC, so we are arranging the principal components that are not (0,...,1,....0)
+		# on the left (as "first principal components"); this makes no difference in terms of  rhs/lhs below
+		#max/min below maybe not do if propIn = 0? No
 	#}
 #	} else{
 #		fullDimPc = preCalcPc
@@ -208,63 +211,78 @@ PCConstraintsFull = function(dat, propIn = .8,  projectDimsLogical = NULL){
 	lowerQuantile = (1-propIn)/2
 	upperQuantile = 1-lowerQuantile
 	
-	projDatSd = as.numeric(apply(projDat, 2, sd))
-	nonConstantProjDatDimsLogical = projDatSd>0
-	constantProjDatDimsLogical = projDatSd==0
 	
-	minProjDat = as.numeric(apply(projDat, 2, quantile, probs=lowerQuantile)) #  smallest-coordinate point along each pc box 
-	maxProjDat = as.numeric(apply(projDat, 2, quantile, probs=upperQuantile)) #  largest-coordinate point along each pc box
-	if(any(constantProjDatDimsLogical))
-		minProjDat[constantProjDatDimsLogical] =  maxProjDat[constantProjDatDimsLogical] #  else min/max may come out of quantile numerically different 
-	maxNoLargerThanMinNonConstantProjDatDimsLogical = (maxProjDat - minProjDat<=0) & nonConstantProjDatDimsLogical
-		 # this could still happen along non-constant dims b/c of quantile (although with propIn>0 it should never happen)
-		 minProjDatPrima = minProjDat
-	if(any(maxNoLargerThanMinNonConstantProjDatDimsLogical)){
-		#print(ifelse(propIn>0, 1e-16, 0))
-		#print(minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical])
-		#aa<<-minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]
-		minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical] =  
-			maxProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]-.Machine$double.eps*2# min will forced to be at least an epsilon smaller than max along non constant dims
-		if(any(minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]-maxProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]==0)){
-			stop("The epsilon trick didn't work\n")
+	minProjDat = as.numeric(apply(projDat, 2, quantile, probs=ifelse(getMedian, 0.5, lowerQuantile))) #  smallest-coordinate point along each pc box, after shrinking via propIn (if getMedian, simply getting the median of the box)
+																										# could have gotten the same using maxProjDat, since setting probs =.5
+	if(getMedian){
+		if(propIn>0)
+			cat("propIn value ignored and set to 0, since getMedian = T\n")
+		lhs = rhs  = NULL
+
+		for(i in 1:p){
+				lhs = rbind(lhs, fullDimPc[,i])
+				rhs = c(rhs,  minProjDat[i])
 		}
-			#ifelse(propIn>0, .Machine$double.neg.eps, 0) 
-		#bb<<-minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]	
-			
-	}
-	#print(minProjDat)
-	#print(maxProjDat)
-	#print(projDat)
-	lengthProjDat = maxProjDat - minProjDat
-	#if(any(lengthProjDat<0)){
-	#	projDat<<-projDat
-	#	whichNonConstantProjDatDims<<-whichNonConstantProjDatDims
-	#	lowerQuantile<<-lowerQuantile
-	#	upperQuantile<<-upperQuantile
-	#	stop()
-	#}
-	
-	numLenghtNonZeroProjDat = sum(lengthProjDat!=0) # this could be < numUncertainDims if the top and bottom quantile happen to be the same along uncertain dimensions (e.g., because propIn is small or because all values along a certain projected dimension are  equal except for one, etc. ), which is why we make sure the difference is at least 1e-16
-			
-	stopifnot(numLenghtNonZeroProjDat==numUncertainDims)
-		
-	if(numUncertainDims>0 & propIn>0){
-		volumeProjDat = prod(lengthProjDat[lengthProjDat!=0])
+		res = solve(lhs, rhs) # this is the median of the box calculated in PC space 
 	} else{
-		volumeProjDat = 0
+		projDatSd = as.numeric(apply(projDat, 2, sd))
+		nonConstantProjDatDimsLogical = projDatSd>0
+		constantProjDatDimsLogical = projDatSd==0
+		maxProjDat = as.numeric(apply(projDat, 2, quantile, probs=upperQuantile)) #  largest-coordinate point along each pc box
+
+		if(any(constantProjDatDimsLogical))
+			minProjDat[constantProjDatDimsLogical] =  maxProjDat[constantProjDatDimsLogical] #  else min/max may come out of quantile numerically different 
+		maxNoLargerThanMinNonConstantProjDatDimsLogical = (maxProjDat - minProjDat<=0) & nonConstantProjDatDimsLogical
+			 # this could still happen along non-constant dims b/c of quantile (although with propIn>0 it should never happen)
+		if(any(maxNoLargerThanMinNonConstantProjDatDimsLogical)){
+			#print(ifelse(propIn>0, 1e-16, 0))
+			#print(minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical])
+			#aa<<-minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]
+			minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical] =  
+				maxProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]-.Machine$double.eps*2# min will forced to be at least an epsilon smaller than max along non constant dims
+			if(any(minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]-maxProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]==0)){
+				stop("The epsilon trick didn't work\n")
+			}
+				#ifelse(propIn>0, .Machine$double.neg.eps, 0) 
+			#bb<<-minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical]	
+		
+		}
+		#print(minProjDat)
+		#print(maxProjDat)
+		#print(projDat)
+		lengthProjDat = maxProjDat - minProjDat
+		#if(any(lengthProjDat<0)){
+		#	projDat<<-projDat
+		#	whichNonConstantProjDatDims<<-whichNonConstantProjDatDims
+		#	lowerQuantile<<-lowerQuantile
+		#	upperQuantile<<-upperQuantile
+		#	stop()
+		#}
+
+		numLenghtNonZeroProjDat = sum(lengthProjDat!=0) # this could be < numUncertainDims if the top and bottom quantile happen to be the same along uncertain dimensions (e.g., because propIn is small or because all values along a certain projected dimension are  equal except for one, etc. ), which is why we make sure the difference is at least 1e-16
+		
+		stopifnot(numLenghtNonZeroProjDat==numUncertainDims)
+	
+		if(numUncertainDims>0 & propIn>0){
+			volumeProjDat = prod(lengthProjDat[lengthProjDat!=0])
+		} else{
+			volumeProjDat = 0
+		}
+
+		lhs = rhs = direction = NULL
+
+		for(i in 1:p){
+			#if(sum(fullDimPc[,i]==1)!=1 | sum(fullDimPc[,i]==0)!=(p-1)){
+				lhs = rbind(lhs, -fullDimPc[,i], fullDimPc[,i]) # minus signs for having <= inequality direction 
+				rhs = c(rhs, -minProjDat[i], maxProjDat[i])# minus signs for having <= inequality direction 
+				direction = c(direction, c("<=", "<="))
+				#}
+		}
+		#volumeDims are the dimensions of dat that have uncertain data/we project to
+		res = list(lhs=lhs, rhs=rhs, dir=direction, pc = fullDimPc, propIn = propIn, length = lengthProjDat, volume = volumeProjDat, volumeDims = which(uncertainDimsLogical)) #pc = fullDimPc
 	}
 	
-	lhs = rhs = direction = NULL
-	for(i in 1:p){
-		#if(sum(fullDimPc[,i]==1)!=1 | sum(fullDimPc[,i]==0)!=(p-1)){
-			lhs = rbind(lhs, -fullDimPc[,i], fullDimPc[,i]) # minus signs for having <= inequality direction 
-			rhs = c(rhs, -minProjDat[i], maxProjDat[i])# minus signs for having <= inequality direction 
-			direction = c(direction, c("<=", "<="))
-			#}
-	}
-	
-	#volumeDims are the dimensions of dat that have uncertain data/we project to
-	res = list(lhs=lhs, rhs=rhs, dir=direction, pc = fullDimPc, propIn = propIn, length = lengthProjDat, volume = volumeProjDat, volumeDims = which(uncertainDimsLogical)) #pc = fullDimPc
+
 	return(res)
 }
 
