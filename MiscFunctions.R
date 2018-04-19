@@ -432,9 +432,10 @@ PerformanceByParameterValue = function(doErrorFoldOutInnerList){
 			parVals = as.numeric(parVals)
 			mat[j, ]= c(parVals, 
 				as.numeric(doErrorFoldOutInnerList[[i]][[j]]$avgError))
-			row.names(mat)=NULL	
 		}
+		row.names(mat)=NULL
 		perfList[[paste0("Fold", i)]] = as.data.frame(mat)
+		cat("Fold", i, "out of", numFolds, "done\n")
 	}
 	attr(perfList, "parColumns") = 1:numPar
 	attr(perfList, "errColumns") = (numPar+1):(numErrorMeas)
@@ -442,20 +443,27 @@ PerformanceByParameterValue = function(doErrorFoldOutInnerList){
 	return(perfList)
 }
 
-PlotPerformanceByParameterValue = function(performanceByParameterValueOut, foldIdx, errMeasure, parName= "all", ...){
+PlotPerformanceByParameterValue = function(performanceByParameterValueOut, foldIdx, errMeasure, parName= "all", lowQuant = 1, ...){
 	
 	res = performanceByParameterValueOut[[foldIdx]]
 	parCols = attr(performanceByParameterValueOut, "parColumns")
 	
 	colNames = colnames(res)
 	stopifnot(errMeasure%in%colNames)
+	errVect = res[[errMeasure]]
+	
 	for(i in parCols){
 		if(parName=="all" | parName==colNames[i]){
 			quartz()
-			plot(res[, i], res[[errMeasure]], xlab=colNames[i], ylab=errMeasure, ...)
+			if(!exists("ylim")){
+				ylim = c(min(errVect), quantile(errVect, probs=lowQuant))
+				plot(res[, i], errVect, xlab=colNames[i], ylab=errMeasure, ylim=ylim, ...)
+				rm(ylim)
+			} else{
+				plot(res[, i], errVect, xlab=colNames[i], ylab=errMeasure, ...)
+			}
 		}
 	}
-	
 }
 
 PlotPerformanceTree=function(performanceByParameterValueOut, foldIdx, errMeasure){

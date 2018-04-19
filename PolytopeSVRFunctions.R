@@ -548,7 +548,7 @@ DoParListGrid = function(parValuesList){
 	parNames = names(parValuesList)
 	stopifnot(all(sort(parNames)==sort(requiredParams)))
 	
-	parGrid = expand.grid(parValuesList)
+	parGrid = expand.grid(parValuesList, stringsAsFactors=F)
 	parListGrid = list()
 	for(i in 1:nrow(parGrid)){
 		parListGrid[[i]] = list()

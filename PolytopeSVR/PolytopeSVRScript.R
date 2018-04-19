@@ -68,16 +68,16 @@ if(!injectMissingness){
 }
 
 parValuesList = list(
-	Ccertain=c(0, .05, .1, 1, 2, 5, 10),#c(0,10^(-2:1)),   ##################
-	Cuncertain=c(0, .05, .1, 1, 2, 5, 10),#c(0,10^(-2:1)), ##################
-	epsilonCertain=c(0, 0.25, .5, 1, 5, 10),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = c(0, 0.25, .5, 1, 5, 10),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0, .05, .1, .5, 1, 2, 5, 10),#c(0,10^(-2:1)),   ##################
+	Cuncertain=c(0, .05, .1, 1, .5, 2, 5, 10),#c(0,10^(-2:1)), ##################
+	epsilonCertain=c(0, 0.25, .5, 1, 5),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0, 0.25, .5, 1, 5),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 
 
-quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) # 
+quantOrSdPropValues = c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
