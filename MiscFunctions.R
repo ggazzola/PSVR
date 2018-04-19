@@ -417,80 +417,89 @@ PerformanceByParameterValue = function(doErrorFoldOutInnerList){
 	numFolds = length(doErrorFoldOutInnerList)
 	numParamComb = length(doErrorFoldOutInnerList[[1]])
 	numErrorMeas = length(doErrorFoldOutInnerList[[1]][[1]]$avgError)
-	errMeasures = colnames(doErrorFoldOutInnerList[[1]][[1]]$avgError)
+	numSdErrorMeas = length(doErrorFoldOutInnerList[[1]][[1]]$sdError)  # normally the same as numErrorMeas, but old results have this = 0 
+	errMeasureNames = colnames(doErrorFoldOutInnerList[[1]][[1]]$avgError)
+	sdMeasureNames = colnames(doErrorFoldOutInnerList[[1]][[1]]$sdError) # normally the same as errMeasureNames, but old results have this = 0 
+
+	avgName = attributes(doErrorFoldOutInnerList[[1]][[1]]$avgError)$average
+	if(is.function(avgName))
+		avgName = "ProbablyMedian"
 	parNames = names(doErrorFoldOutInnerList[[1]][[1]]$parList)
 	numPar = length(parNames)
 
 	perfList = list()
 	for(i in 1:numFolds){
-		mat = matrix(, nrow=numParamComb, ncol=numPar+numErrorMeas)
-		colnames(mat) = c(parNames, errMeasures)
+		mat = matrix(, nrow=numParamComb, ncol=numPar+numErrorMeas*2)
+		colNamesMat = c(parNames, paste0(avgName,errMeasureNames))
+		if(numSdErrorMeas>0){
+			colNamesMat = c(colNamesMat, paste0("std", sdMeasureNames))
+		} else{
+			colNamesMat = c(colNamesMat, paste0("std", errMeasureNames)) # for old results
+		}
+		colnames(mat)=colNamesMat
+		
 		for(j in 1:numParamComb){
 			parVals = simplify2array(doErrorFoldOutInnerList[[i]][[j]]$parList)
 			if(any(grepl("irrelevant", parVals)))
 				parVals[grepl("irrelevant", parVals)] = -Inf # just so that we can always handle parVals as numeric
 			parVals = as.numeric(parVals)
+			if(numSdErrorMeas==0)
+				doErrorFoldOutInnerList[[i]][[j]]$sdError = apply(doErrorFoldOutInnerList[[i]][[j]]$errorMat, 2, sd)
 			mat[j, ]= c(parVals, 
-				as.numeric(doErrorFoldOutInnerList[[i]][[j]]$avgError))
+				as.numeric(doErrorFoldOutInnerList[[i]][[j]]$avgError), as.numeric(doErrorFoldOutInnerList[[i]][[j]]$sdError))
 		}
 		row.names(mat)=NULL
 		perfList[[paste0("Fold", i)]] = as.data.frame(mat)
 		cat("Fold", i, "out of", numFolds, "done\n")
 	}
 	attr(perfList, "parColumns") = 1:numPar
-	attr(perfList, "errColumns") = (numPar+1):(numErrorMeas)
-	
+	attr(perfList, "avgErrColumns") = (numPar+1):(numPar+1+numErrorMeas)
+	attr(perfList, "sdErrColumns") = (numPar+1+numErrorMeas+1):(numPar+1+numErrorMeas+1+numErrorMeas)
+	attr(perfList, "avgName")=avgName
 	return(perfList)
 }
 
-PlotPerformanceByParameterValue = function(performanceByParameterValueOut, foldIdx, errMeasure, parName= "all", lowQuant = 1, ...){
+PlotPerformanceByParameterValue = function(performanceByParameterValueOut, foldIdx, errMeasureName, parName= "all", lowQuant = 1, ...){
 	
 	res = performanceByParameterValueOut[[foldIdx]]
 	parCols = attr(performanceByParameterValueOut, "parColumns")
-	
+	avgErrMeasureName = paste0(attr(performanceByParameterValueOut, "avgName"), errMeasureName)
 	colNames = colnames(res)
-	stopifnot(errMeasure%in%colNames)
-	errVect = res[[errMeasure]]
+	stopifnot(avgErrMeasureName%in%colNames)
+	errVect = res[[avgErrMeasureName]]
 	
 	for(i in parCols){
 		if(parName=="all" | parName==colNames[i]){
 			quartz()
 			if(!exists("ylim")){
 				ylim = c(min(errVect), quantile(errVect, probs=lowQuant))
-				plot(res[, i], errVect, xlab=colNames[i], ylab=errMeasure, ylim=ylim, ...)
+				plot(res[, i], errVect, xlab=colNames[i], ylab=avgErrMeasureName, ylim=ylim, ...)
 				rm(ylim)
 			} else{
-				plot(res[, i], errVect, xlab=colNames[i], ylab=errMeasure, ...)
+				plot(res[, i], errVect, xlab=colNames[i], ylab=avgErrMeasureName, ...)
 			}
 		}
 	}
 }
 
-PlotPerformanceTree=function(performanceByParameterValueOut, foldIdx, errMeasure){
-	# not so useful...
-	require(rpart)
+OrderPerformance = function(performanceByParameterValueOut, foldIdx, errMeasureName){
+	
 	res = performanceByParameterValueOut[[foldIdx]]
-	stopifnot(errMeasure%in%colnames(res))
+	parCols = attr(performanceByParameterValueOut, "parColumns")
+	avgErrMeasureName = paste0(attr(performanceByParameterValueOut, "avgName"), errMeasureName)
+	sdErrMeasureName = paste0("std",errMeasureName)
+	
+	stopifnot(avgErrMeasureName%in%colnames(res))
+	stopifnot(sdErrMeasureName%in%colnames(res))
+	
+	avgErrMeasureCol = which(colnames(res)==avgErrMeasureName)
+	sdErrMeasureCol = which(colnames(res)==sdErrMeasureName)
+	orderErrMeasure = order(res[,avgErrMeasureCol])
 	colsToKeep = attr(performanceByParameterValueOut, "parColumns")
-	colsToKeep = c(colsToKeep, which(colnames(res)==errMeasure))
+	colsToKeep = c(colsToKeep, avgErrMeasureCol, sdErrMeasureCol)
 	res =res [, colsToKeep]
-	
-	fit = rpart(as.formula(paste0(errMeasure, "~.")), data=res, control = rpart.control(minsplit = 2, minbucket=1))
-	
-	plot(fit)
-	text(fit, use.n = TRUE)
-	
-}
-
-OrderPerformance = function(performanceByParameterValueOut, foldIdx, errMeasure){
-	res = performanceByParameterValueOut[[foldIdx]]
-	stopifnot(errMeasure%in%colnames(res))
-	errMeasureCol = which(colnames(res)==errMeasure)
-	orderErrMeasure = order(res[,errMeasureCol])
-	colsToKeep = attr(performanceByParameterValueOut, "parColumns")
-	colsToKeep = c(colsToKeep, errMeasureCol)
-	res =res [, colsToKeep]
-	res = res[orderErrMeasure, ]
+	res = res[orderErrMeasure, ] # useful to keep row names, because that corresponds to the index in the list of tried hyper-parameter combinations
+									# in doErrorFoldOutInnerList[[foldIdx]]
 	return(res)
 }
 #dims = 12

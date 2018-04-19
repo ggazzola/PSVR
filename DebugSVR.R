@@ -11,8 +11,8 @@ dataFolder="../Data/"
 realData = F
 injectMissingness = T
 doMCAR = T 
-missingVarProp = 0.5
-missingObsProp = 0.75
+missingVarProp = 0.9
+missingObsProp = 0.9
 corVal = 0.2
 
 
@@ -25,7 +25,7 @@ corVal = 0.2
 
 
 maxGenerateDataAttempts = 20
-numFolds = 3#####################
+numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
 maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
@@ -41,8 +41,8 @@ if(T){
 }
 
 if(!realData){
-	n = 30 # do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
-	p = 4
+	n = 100 # do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	p = 10
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
 	trueW = 1:p
@@ -84,6 +84,8 @@ approachVect = c("doPCbb", "doMedian", "doNoMiss")  ####################
 
 
 repVect=1:1 # # MUST DO MORE REPEATS, the results don't seem stable
+
+rejectSilently=F	
 
 GenerateData()
 MultiplyImpute()
@@ -140,6 +142,9 @@ for(index in 1:nrow(datStructure$inDat$original)){
 
 
 pp= PerformanceByParameterValue(doErrorFoldOutInnerList)
+aa = OrderPerformance (pp, 1, "rmse")
+
+
 
 modelPC = DoTrainModel(polyListPCSmall, parList)
 modelMed = DoTrainModel(polyListMedSmall, parList)

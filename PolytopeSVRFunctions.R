@@ -62,7 +62,7 @@ DoOriginalMissingDataSplit = function(doDatOut, doMissOut, numFolds, stratifyByM
 	stopifnot("Y"==colnames(doMissOut)[ncol(doMissOut)])
 	stopifnot(all(dim(doDatOut)==dim(doMissOut)))
 	
-	HasNA = function(x) {any(is.na(x))}
+	HasNA = function(x) {as.numeric(any(is.na(x)))}
 	
 	if(stratifyByMiss){
 		outVarForStrat = as.factor(apply(doMissOut, 1, HasNA))
@@ -160,7 +160,7 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 	
 		whichMissObs = sample(n, numMissObs)
 		for(i in whichMissObs){
-			dat[i, sample(totPotentialMissVar, numMissVar)] = NA # each row independently of the other has a certain proportion of missing columns
+			dat[i, sample(totPotentialMissVar, numMissVar)] = NA # each row independently of the others has a certain proportion of missing columns
 		}
 	} else{
 		datScaled = scale(dat) # scaling to make sure the strength of conditional effects depend only on beta and not on the scale of variables
@@ -523,7 +523,7 @@ DoPolyListFolds = function(doMultipleImputationFoldsOut, quantOrSdProp, scaleDat
 		stopifnot(!is.null(doMultipleImputationFoldsOut[[i]]$inDat$imputed$imputDatList))
 		polyListFolds[[i]]$polyList = DoPolyList(missDat=doMultipleImputationFoldsOut[[i]]$inDat$missing, 
 			imputDatList=doMultipleImputationFoldsOut[[i]]$inDat$imputed$imputDatList, 
-			medianOrientedBoxImputDat=doMultipleImputationFoldsOut[[i]]$inDat$imputed$medianOrientedBoxImputDat, 
+			medianOrientedOrNonOrientedImputDat=doMultipleImputationFoldsOut[[i]]$inDat$imputed$medianOrientedBoxImputDat, 
 			quantOrSdProp=quantOrSdProp, scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=doMedian, doNoMiss=doNoMiss, 
 				doSquarebbSd=doSquarebbSd, doSquarebbQuant=doSquarebbQuant)
 	
@@ -768,9 +768,13 @@ DoExtractErrMat = function(doErrorFoldOut, average=median){ ### median helps avo
 		errMat=as.data.frame(errMat)
 		errMatRes[[i]]$errorMat=errMat
 		avgErr = apply(errMat,2, average)
+		sdErr = apply(errMat,2, sd)
+		sdErr[is.na(sdErr)]=0 # for the degenerate numFolds = 1 case 
 		names(avgErr)= colnames(errMat)
+		names(sdErr) = colnames(errMat)
 		errMatRes[[i]]$avgError = data.frame(t(avgErr))
-		attr(errMatRes[[i]]$avgError, "average")=average
+		errMatRes[[i]]$sdError = data.frame(t(sdErr))
+		attr(errMatRes[[i]]$avgError, "average")=as.character(quote(average))
 	}
 	return(errMatRes)
 	

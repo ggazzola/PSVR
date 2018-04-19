@@ -97,12 +97,12 @@ MultiplyImpute = function(){
 CalculateValidationErrors = function(){
 	if(approach=="doMedian" | approach=="doNoMiss"){
 		parValuesListNoUncert = parValuesList
-		parValuesListNoUncert$Cuncertain = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoMiss")
-		parValuesListNoUncert$extraEpsilonUncertain = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoMiss")
+		parValuesListNoUncert$Cuncertain = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoNoMiss")
+		parValuesListNoUncert$extraEpsilonUncertain = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoNoMiss")
 		parValuesListNoUncert$uncertaintySpecialTreatment = F
 		parValuesListNoUncert$twoSlacks=F
 		doParListGridOut = DoParListGrid(parValuesList = parValuesListNoUncert)
-		quantOrSdPropValuesVect = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoMiss")
+		quantOrSdPropValuesVect = ifelse(approach=="doMedian", "irrelevantForDoMedian", "irrelevantForDoNoMiss")
 	} else if(approach=="doSquarebbSd" | approach=="doSquarebbQuant"){
 		parValuesListSquaredBB = parValuesList
 		parValuesListSquaredBB$Cuncertain = ifelse(approach=="doSquarebbSd", "irrelevantForDoSquarebbSd", "irrelevantForDoSquarebbQuant")
