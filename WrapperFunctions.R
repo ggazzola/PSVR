@@ -169,9 +169,7 @@ SetUpTest = function(){
 	
 		currTrainImput = doDataSplitOutOuter[[i]]$inDat$imputed
 		currTestImput = doDataSplitOutOuter[[i]]$outDat$imputed
-		
-		#currTrainMedianImput = doDataSplitOutOuter[[i]]$inDat$imputed$medianImputDat
-		#currTestMedianImput = doDataSplitOutOuter[[i]]$outDat$imputed$medianImputDat
+	
 	
 		getTrainResReadyForTest[[i]]$currTrain = currTrain
 		getTrainResReadyForTest[[i]]$currTest = currTest
@@ -205,7 +203,7 @@ CalculateTestErrors = function(){
 		
 
 		currTrainPolyList = DoPolyList(missDat=currTrain, imputDatList = currTrainImput$imputDatList,
-			medianImputDat=currTrainImput$medianImputDat, quantOrSdProp=bestParList$quantOrSdProp,  
+			medianOrientedOrNonOrientedImputDat=currTrainImput$medianOrientedBoxImputDat, quantOrSdProp=bestParList$quantOrSdProp,  
 			scaleData=scaleData, maxUncertainDims=maxUncertainDims, doMedian=approach=="doMedian", doNoMiss=approach=="doNoMiss",
 			doSquarebbSd=approach=="doSquarebbSd", doSquarebbQuant=approach=="doSquarebbQuant")	
 		
@@ -216,8 +214,9 @@ CalculateTestErrors = function(){
 			stopifnot(bestParList$twoSlacks==F)
 			
 			if(approach%in%c("doMedian")){
-				testMeanOrMedian = currTestImput$medianImputDat
+				testMeanOrMedian = currTestImput$medianOrientedBoxImputDat
 			} else if(approach%in%c("doPCbb", "doNoMiss")){
+				# relevant for doNoMiss too because this is for the prediction of testing points, not training the model
 				testMeanOrMedian = currTestImput$medianOrientedBoxImputDat
 			} else{
 				stop("Don't know what to do")

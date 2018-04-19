@@ -412,7 +412,79 @@ GetMultipleImputSinglePoint = function(index, imputDatList){
 }
 
 
+PerformanceByParameterValue = function(doErrorFoldOutInnerList){
 
+	numFolds = length(doErrorFoldOutInnerList)
+	numParamComb = length(doErrorFoldOutInnerList[[1]])
+	numErrorMeas = length(doErrorFoldOutInnerList[[1]][[1]]$avgError)
+	errMeasures = colnames(doErrorFoldOutInnerList[[1]][[1]]$avgError)
+	parNames = names(doErrorFoldOutInnerList[[1]][[1]]$parList)
+	numPar = length(parNames)
+
+	perfList = list()
+	for(i in 1:numFolds){
+		mat = matrix(, nrow=numParamComb, ncol=numPar+numErrorMeas)
+		colnames(mat) = c(parNames, errMeasures)
+		for(j in 1:numParamComb){
+			parVals = simplify2array(doErrorFoldOutInnerList[[i]][[j]]$parList)
+			if(any(grepl("irrelevant", parVals)))
+				parVals[grepl("irrelevant", parVals)] = -Inf # just so that we can always handle parVals as numeric
+			parVals = as.numeric(parVals)
+			mat[j, ]= c(parVals, 
+				as.numeric(doErrorFoldOutInnerList[[i]][[j]]$avgError))
+			row.names(mat)=NULL	
+		}
+		perfList[[paste0("Fold", i)]] = as.data.frame(mat)
+	}
+	attr(perfList, "parColumns") = 1:numPar
+	attr(perfList, "errColumns") = (numPar+1):(numErrorMeas)
+	
+	return(perfList)
+}
+
+PlotPerformanceByParameterValue = function(performanceByParameterValueOut, foldIdx, errMeasure, parName= "all", ...){
+	
+	res = performanceByParameterValueOut[[foldIdx]]
+	parCols = attr(performanceByParameterValueOut, "parColumns")
+	
+	colNames = colnames(res)
+	stopifnot(errMeasure%in%colNames)
+	for(i in parCols){
+		if(parName=="all" | parName==colNames[i]){
+			quartz()
+			plot(res[, i], res[[errMeasure]], xlab=colNames[i], ylab=errMeasure, ...)
+		}
+	}
+	
+}
+
+PlotPerformanceTree=function(performanceByParameterValueOut, foldIdx, errMeasure){
+	# not so useful...
+	require(rpart)
+	res = performanceByParameterValueOut[[foldIdx]]
+	stopifnot(errMeasure%in%colnames(res))
+	colsToKeep = attr(performanceByParameterValueOut, "parColumns")
+	colsToKeep = c(colsToKeep, which(colnames(res)==errMeasure))
+	res =res [, colsToKeep]
+	
+	fit = rpart(as.formula(paste0(errMeasure, "~.")), data=res, control = rpart.control(minsplit = 2, minbucket=1))
+	
+	plot(fit)
+	text(fit, use.n = TRUE)
+	
+}
+
+OrderPerformance = function(performanceByParameterValueOut, foldIdx, errMeasure){
+	res = performanceByParameterValueOut[[foldIdx]]
+	stopifnot(errMeasure%in%colnames(res))
+	errMeasureCol = which(colnames(res)==errMeasure)
+	orderErrMeasure = order(res[,errMeasureCol])
+	colsToKeep = attr(performanceByParameterValueOut, "parColumns")
+	colsToKeep = c(colsToKeep, errMeasureCol)
+	res =res [, colsToKeep]
+	res = res[orderErrMeasure, ]
+	return(res)
+}
 #dims = 12
 #Cov <- matrix(0, dims, dims) 
 #Cov[1:4,1:4] = 0.9

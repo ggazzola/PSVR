@@ -92,12 +92,11 @@ datMiss = doDataSplitOutOuter[[1]]$inDat$missing
 datImput = doDataSplitOutOuter[[1]]$inDat$imputed
 
 
-#imputDatList, medianImputDat, quantOrSdProp, scaleData, maxUncertainDims, doMedian
 
-polyListPC = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
+polyListPC = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianOrientedOrNonOrientedImputDat=datImput$medianOrientedBoxImputDat, 
 	quantOrSdProp=0, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=F, doNoMiss=F, doSquarebbSd=F, doSquarebbQuant=F) 
 	
-polyListMed = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianImputDat=datImput$medianImputDat, 
+polyListMed = DoPolyList(missDat=datMiss, imputDatList=datImput$imputDatList, medianOrientedOrNonOrientedImputDat=datImput$medianOrientedBoxImputDat, 
 	quantOrSdProp=0, scaleData=T, maxUncertainDims=maxUncertainDims, doMedian=T, doNoMiss=F, doSquarebbSd=F, doSquarebbQuant=F) 
 	
 parList = list(Ccertain=1, Cuncertain=1, epsilonCertain=0, extraEpsilonUncertain=0, uncertaintySpecialTreatment=F, twoSlacks = F, linear=T) 
@@ -125,10 +124,12 @@ errorMedian = NULL
 errorOrientedMedian = NULL
 imputDatList = datStructure$inDat$imputed$imputDatList
 
+corMatList = list()
 for(index in 1:nrow(datStructure$inDat$original)){
 	truePoint = datStructure$inDat$original[index,]
 	missingPoint = datStructure$inDat$missing[index,]
 	imputMat = GetMultipleImputSinglePoint(index, imputDatList)
+	corMatList[[index]] = cor(imputMat)
 	medianImput =  datStructure$inDat$imputed$medianImputDat[index,]
 	medianOrientedImput =  datStructure$inDat$imputed$medianOrientedBoxImputDat[index,]
 	errMedian= abs(truePoint-medianImput)
@@ -138,7 +139,7 @@ for(index in 1:nrow(datStructure$inDat$original)){
 }
 
 
-
+pp= PerformanceByParameterValue(doErrorFoldOutInnerList)
 
 modelPC = DoTrainModel(polyListPCSmall, parList)
 modelMed = DoTrainModel(polyListMedSmall, parList)

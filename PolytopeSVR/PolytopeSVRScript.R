@@ -77,7 +77,7 @@ parValuesList = list(
 	)	
 
 
-quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) # THIS WILL BE "TRIMMED" BELOW, BASED ON n and numFolds
+quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1) # 
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
@@ -102,9 +102,9 @@ for(repIdx in repVect){
 	
 }
 
-innerTrainingN = floor(n*(1-1/numFolds)^2)
-uselessQuanOrSdPropValuesIdx = duplicated(round(innerTrainingN* quantOrSdPropValues))
-quantOrSdPropValues = quantOrSdPropValues[!uselessQuanOrSdPropValuesIdx]
+#innerTrainingN = floor(n*(1-1/numFolds)^2) # this "trimming" may actually be counter productive (e.g., even if n points, can obtain >n different quantilic box sizes out of quantile())
+#uselessQuanOrSdPropValuesIdx = duplicated(round(innerTrainingN* quantOrSdPropValues))
+#quantOrSdPropValues = quantOrSdPropValues[!uselessQuanOrSdPropValuesIdx]
 
 cat("Data partitions containing at least one missing point and one non-missing point can be generated\n")
 cat("Proceeding to actual experiments...\n\n\n")
