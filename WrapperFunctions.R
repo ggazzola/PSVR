@@ -143,7 +143,7 @@ CalculateValidationErrors = function(){
 		
 		}
 		doErrorFoldOutInnerList[[i]] = DoExtractErrMat(doErrorFoldOut = doErrorFoldOutInnerListTmp) # these are cross validation results for the i-th training data set (divided into numFolds training/validation); doErrorFoldOutInnerList[[i]][[j]]$ElementName[[k]] are the results for the j-th model parameter combination, in the k-th training/validation inner partition of the i-th outer training/testing fold, with all error measures; ElementName is one of "avgError"  "errorList" "errorMat"  "model"     "parList"
-		
+		doErrorFoldOutInnerList<<-doErrorFoldOutInnerList # adding this here, so partial results can still be viewed
 		innerProgressOut = paste("Inner cross-validation", i, "out of ", length(doDataSplitOutOuter), "DONE at", date(), "\n")
 		cat(innerProgressOut)
 		write.table(innerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
@@ -213,9 +213,7 @@ CalculateTestErrors = function(){
 		} else{
 			stopifnot(bestParList$twoSlacks==F)
 			
-			if(approach%in%c("doMedian")){
-				testMeanOrMedian = currTestImput$medianOrientedBoxImputDat
-			} else if(approach%in%c("doPCbb", "doNoMiss")){
+			if(approach%in%c("doMedian", "doPCbb", "doNoMiss")){
 				# relevant for doNoMiss too because this is for the prediction of testing points, not training the model
 				testMeanOrMedian = currTestImput$medianOrientedBoxImputDat
 			} else{
