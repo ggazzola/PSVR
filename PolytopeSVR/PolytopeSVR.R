@@ -9,7 +9,7 @@ PolytopeSVR = function(polyList, Ccertain, Cuncertain, epsilonCertain, extraEpsi
 	# The direction of all inequalities (polyList[[i]]$dir) should always be '<='
 	# If there is no uncertainty on any of the p+1 variables, 
 	#	e.g., x_1=3, then A will contain two rows corresponding to x_1<=3 and -x_1<=-3)
-	# Cuncertain, extraEpsilonUncertain same as alpha and beta in formulation
+	# Cuncertain, extraEpsilonUncertain same as c^m and \epsilon^m in formulation
 	stopifnot(is.list(polyList))
 	stopifnot(is.numeric(epsilonCertain) & length(epsilonCertain)==1)
 		
