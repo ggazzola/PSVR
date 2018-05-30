@@ -198,13 +198,14 @@ for(repIdx in repVect){
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrors = errVect 
 
 			stopifnot(length(errVect)==numFolds)
-			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect)
+			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect) 
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
 
 			progressOut=paste("Combination", cnt, "out of", totComb, "DONE at", date(), "\n")
 			cat(progressOut)
 			write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
-			save.image(file=paste0(resultsFolderName, "/", fileName)) # save only testRes?
+			save.image(file=paste0(resultsFolderName, "/", fileName)) # --> note: we save ONLY the inner cross-validation results of the last repeat
+																		# since they get overwritten	
 
 			cnt = cnt+1
 			
