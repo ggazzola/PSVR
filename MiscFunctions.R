@@ -413,6 +413,7 @@ GetMultipleImputSinglePoint = function(index, imputDatList){
 
 
 PerformanceByParameterValue = function(doErrorFoldOutInnerList){
+	# doErrorFoldOutInnerList saved and overwritten after each approach is done!
 
 	numFolds = length(doErrorFoldOutInnerList)
 	numParamComb = length(doErrorFoldOutInnerList[[1]])
@@ -442,6 +443,11 @@ PerformanceByParameterValue = function(doErrorFoldOutInnerList){
 			parVals = simplify2array(doErrorFoldOutInnerList[[i]][[j]]$parList)
 			if(any(grepl("irrelevant", parVals)))
 				parVals[grepl("irrelevant", parVals)] = -Inf # just so that we can always handle parVals as numeric
+			if(any(grepl("TRUE", parVals)))
+				parVals[grepl("TRUE", parVals)] = 1 # just so that we can always handle parVals as numeric
+			if(any(grepl("FALSE", parVals)))
+				parVals[grepl("FALSE", parVals)] = 0 # just so that we can always handle parVals as numeric
+			
 			parVals = as.numeric(parVals)
 			if(numSdErrorMeas==0)
 				doErrorFoldOutInnerList[[i]][[j]]$sdError = apply(doErrorFoldOutInnerList[[i]][[j]]$errorMat, 2, sd)
@@ -470,14 +476,17 @@ PlotPerformanceByParameterValue = function(performanceByParameterValueOut, foldI
 	
 	for(i in parCols){
 		if(parName=="all" | parName==colNames[i]){
-			quartz()
-			if(!exists("ylim")){
-				ylim = c(min(errVect), quantile(errVect, probs=lowQuant))
-				plot(res[, i], errVect, xlab=colNames[i], ylab=avgErrMeasureName, ylim=ylim, ...)
-				rm(ylim)
-			} else{
-				plot(res[, i], errVect, xlab=colNames[i], ylab=avgErrMeasureName, ...)
-			}
+			if(any(res[,i]!=-Inf) & length(unique(res[,i]))>1){
+				stopifnot(all(res[,i]!=-Inf))
+				quartz()
+				if(!exists("ylim")){
+					ylim = c(min(errVect), quantile(errVect, probs=lowQuant))
+					plot(res[, i], errVect, xlab=colNames[i], ylab=avgErrMeasureName, ylim=ylim, ...)
+					rm(ylim)
+				} else{
+					plot(res[, i], errVect, xlab=colNames[i], ylab=avgErrMeasureName, ...)
+				}
+			}	
 		}
 	}
 }
