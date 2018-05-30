@@ -14,9 +14,11 @@ dataFolder="../Data/"
 realData = F
 injectMissingness = T
 doMCAR = T 
-missingVarProp = 0.9
+missingVarProp = 0.9 
 missingObsProp = 0.9
 corVal = 0.9
+# do .9, .9, X; .3 .3 X, with X = 0.3, .9
+
 
 
 #######noMissDat --> the best testing parameters for uncertain data should be chosen based on the best for certain predictions: WHY? you can still calculate validation performance according to uncertain data only...
@@ -32,7 +34,7 @@ numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
 maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
-numImput = 50 ###############
+numImput = 40 ###############
 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
@@ -50,7 +52,7 @@ if(!realData){
 	stdVect = rep(1, p)
 	trueW = 1:p
 	trueW0 = p/2
-	theoRsq = 0.95
+	theoRsq = 0.9
 	stopifnot(injectMissingness)
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
@@ -68,26 +70,26 @@ if(!injectMissingness){
 }
 
 parValuesList = list(
-	Ccertain=c(0, .05, .1, .5, 1, 2, 5, 10),#c(0,10^(-2:1)),   ##################
-	Cuncertain=c(0, .05, .1, 1, .5, 2, 5, 10),#c(0,10^(-2:1)), ##################
-	epsilonCertain=c(0, 0.25, .5, 1, 5),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = c(0, 0.25, .5, 1, 5),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0, .05, .1, .5, 1, 2, 5),#c(0,10^(-2:1)),   ##################
+	Cuncertain=c(0, .05, .1, .5, 1, 2, 5),#c(0,10^(-2:1)), ##################
+	epsilonCertain=c(0, 0.25, .5, 1),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0, 0.25, .5, 1),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 
 
-quantOrSdPropValues = c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
+quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1)#c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
 #errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
 #"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
 #"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
 errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
 	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
 #approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
-approachVect = c("doPCbb", "doMedian", "doNoMiss")  ####################
+approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant")  ####################
 
 
-repVect=1:1 # # MUST DO MORE REPEATS, the results don't seem stable
+repVect=1:4 # # MUST DO MORE REPEATS, the results don't seem stable
 
 for(repIdx in repVect){
 	rejectSilently=F	
