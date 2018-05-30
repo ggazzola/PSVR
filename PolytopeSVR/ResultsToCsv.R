@@ -7,49 +7,75 @@ if (length(nameSim)!=1) {
 
 load(nameSim)
 
-res = testRes[[1]] 
-approachVect = c("doPCbb" ,  "doMedian", "doNoMiss")
+approachVectWanted = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doNoMiss","doMedian") 
+stopifnot(all(approachVectWanted%in%approachVect))
+approachVectNew = c("PSVR", "CarrizosaSD", "CarrizosaQ", "CSVR", "MSVR")
 
-approachVectNew = c("PolySVR", "MedSVR", "ComplSVR")
+errMeasureVectWanted=c("mae", "rmse", "Maxae",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert", "quantEightAeCert",
+	"maeUncert", "rmseUncert", "MaxaeUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
+	stopifnot(all(errMeasureVectWanted%in%errMeasureVect))
+errMeasureVectNew = c(
+	 "\\bs{e_{ma}^a}",            "\\bs{e_rms^a}"   ,        "\\bs{e_{maxa}^a}"  ,     
+	    "\\bs{e_{q.8a}^a}",
+	 "\\bs{e_{ma}^c}",            "\\bs{e_rms^c}"   ,        "\\bs{e_{maxa}^c}"  ,     
+   "\\bs{e_{q.8a}^c}", "\\bs{e_{ma}^u}",            "\\bs{e_rms^u}"   ,        "\\bs{e_{maxa}^u}",
+ "\\bs{e_{q.8a}^u}" )      
 
+numRep = length(testRes)
 
-#errMeasureVect = c("mae", "rmse", "Maxae", "quantNineAe", "quantEightAe", "quantSevenAe",
-#				"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert",
-#				"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert") #maeCert #maeUncert, ...
-
-errMeasureVect = c(
-				"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert",
-				"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert") #maeCert #maeUncert, ...
-
-errMeasureVectNew=errMeasureVect
-#errMeasureVect = c(  "mae", "rmse", "Maxae",
-#"maeCert",            "rmseCert"   ,        "MaxaeCert"  ,         
-# "maeUncert"    ,      "rmseUncert"      ,   "MaxaeUncert" )   
+resMatList =  list()
+for(nRep in 1:numRep){ 
+	resMat =  matrix(, nrow=length(approachVectWanted), ncol=length(errMeasureVectWanted))
  
- errMeasureVectNew = c(  "\\bs{e_{ma}^c}",            "\\bs{e_rms^c}"   ,        "\\bs{e_{maxa}^c}"  ,     
- "\\bs{e_{q.9a}^c}",     "\\bs{e_{q.8a}^c}",  "\\bs{e_{q.7a}^c}",
-"\\bs{e_{ma}^u}",            "\\bs{e_rms^u}"   ,        "\\bs{e_{maxa}^u}",
-"\\bs{e_{q.9a}^u}",     "\\bs{e_{q.8a}^u}",  "\\bs{e_{q.7a}^u}"
- )      
- 
-resMat = resMatSE =  matrix(, nrow=length(approachVect), ncol=length(errMeasureVect))
- 
-for(j in 1:length(errMeasureVect)) {
-	for(i in 1:length(approachVect)) {
-		errMeasure = errMeasureVect[j]
-		approach = approachVect[i]
-		resMat[i,j]=round(res[[errMeasure]][[approach]]$testErrorsAggregate, 2)
-		resMatSE[i,j]=round(sd(res[[errMeasure]][[approach]]$testErrors)/sqrt(length(res[[j]][[i]]$testErrors)), 2) # redo, SE should be calculated across repeats, for comparability with other results
+	for(j in 1:length(errMeasureVectWanted)) {
+		for(i in 1:length(approachVectWanted)) {
+			errMeasure = errMeasureVectWanted[j]
+			approach = approachVectWanted[i]
+			resMat[i,j]=testRes[[nRep]][[errMeasure]][[approach]]$testErrorsAggregate
+		}
+	}	
+	resMatList[[nRep]] = resMat
+
+}
+
+meanResMat = seResMat = matrix(, nrow=length(approachVectWanted), ncol=length(errMeasureVectWanted))
+
+
+for(j in 1:length(errMeasureVectWanted)) {
+	for(i in 1:length(approachVectWanted)) {
+		vect = NULL
+		for(nRep in 1:numRep){
+			vect = c(vect, resMatList[[nRep]][i,j])
+		}	
+		meanResMat[i,j] = round(mean(vect),3)
+		seResMat[i,j] = round(sd(vect)/sqrt(numRep),3)
 	}
-}		
+}	
 
-resMat = as.data.frame(resMat)
+meanResMat = as.data.frame(meanResMat)
+meanResMat = cbind(approachVectNew, meanResMat)
 
-resMat = cbind(approachVectNew, resMat)
+seResMat = as.data.frame(seResMat)
+seResMat = cbind(approachVectNew, seResMat)
 
-colnames(resMat)=c("\\text{\\bfseries{Method}}", errMeasureVectNew)
+colnames(meanResMat)=c("\\text{\\bfseries{Method}}", errMeasureVectNew)
+write.csv(meanResMat, file=paste(nameSim, "MeanRes.csv", sep=""), quote=F, row.names=F)
 
-write.csv(resMat, file=paste(nameSim, "Res.csv", sep=""), quote=F, row.names=F)
+colnames(seResMat)=c("\\text{\\bfseries{Method}}", errMeasureVectNew)
+write.csv(seResMat, file=paste(nameSim, "SeRes.csv", sep=""), quote=F, row.names=F)
 
+newMeanMat = matrix(, nrow=nrow(meanResMat), ncol=ncol(meanResMat))
+
+for(i in 1:nrow(meanResMat)){
+	for(j in 2:ncol(meanResMat)){
+		newMeanMat[i, j] = paste(meanResMat[i,j], seResMat[i,j], sep="\\pm")
+	}
+	currMeth = meanResMat[i,1] 
+	currMeth = paste0("\\text{\\textsf{", currMeth, "}}")
+	newMeanMat[i,1]  = currMeth
+}	
+
+colnames(newMeanMat)=c("\\text{\\bfseries{Method}}", errMeasureVectNew)
+
+write.csv(newMeanMat, file=paste(nameSim, "MeanSeRes.csv", sep=""), quote=F, row.names=F)
 cat(nameSim, "done\n")
-

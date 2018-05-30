@@ -18,7 +18,7 @@ missingVarProp = 0.9
 missingObsProp = 0.9
 corVal = 0.9
 # do .9, .9, X; .3 .3 X, with X = 0.3, .9
-
+# MAR only?
 
 
 #######noMissDat --> the best testing parameters for uncertain data should be chosen based on the best for certain predictions: WHY? you can still calculate validation performance according to uncertain data only...
