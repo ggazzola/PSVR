@@ -702,9 +702,7 @@ DoErrorFold = function(doPolyListFoldsOut, doParListGridOut, replaceImputedWithT
 			currFoldMissingDatOut = doPolyListFoldsOut[[i]]$outDat$missing
 			if(approach %in%c("doSquarebbQuant", "doSquarebbSd")){
 				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$meanBoxImputDat
-			} else if(approach%in%c("doMedian")){
-				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$medianOrientedBoxImputDat
-			} else if(approach%in%c("doPCbb", "doNoMiss")){
+			} else if(approach%in%c("doMedian", "doPCbb", "doNoMiss")){
 				# note: NOT irrelevant for doNoMiss, because this is for being able to predict out-of-sample points, 
 				# not for training the model
 				currFoldImputedOutDat = doPolyListFoldsOut[[i]]$outDat$imputed$medianOrientedBoxImputDat
