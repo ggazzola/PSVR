@@ -491,6 +491,46 @@ PlotPerformanceByParameterValue = function(performanceByParameterValueOut, foldI
 	}
 }
 
+PlotBestPerformanceByParameterValue = function(performanceByParameterValueOut, foldIdx, errMeasureName, parName= "all", ...){
+	
+	parCols = attr(performanceByParameterValueOut, "parColumns")
+	avgErrMeasureName = paste0(attr(performanceByParameterValueOut, "avgName"), errMeasureName)
+	colNames = colnames(performanceByParameterValueOut[[foldIdx[1]]]) # assuming constant across folds
+	
+	for(i in parCols){
+		if(parName=="all" | parName==colNames[i]){
+			yValVectMat = NULL
+			goAhead = T
+			for(k in foldIdx){
+				if(goAhead){
+					res = performanceByParameterValueOut[[k]]
+					stopifnot(avgErrMeasureName%in%colNames)
+					errVect = res[[avgErrMeasureName]]
+					if(any(res[,i]!=-Inf) & length(unique(res[,i]))>1){
+						stopifnot(all(res[,i]!=-Inf))
+						yValVect = NULL
+						xValVect = sort(unique(res[,i]))
+						for(j in xValVect){
+							yValVect = c(yValVect, min(errVect[res[,i]==j]))
+						}				
+					
+						yValVectMat = rbind(yValVectMat, yValVect)
+					} else {
+						goAhead = F
+					}
+				} 
+			}
+			if(goAhead){
+				meanYVal = apply(yValVectMat, 2, mean)
+				seYVal = apply(yValVectMat, 2, sd)/sqrt(nrow(yValVectMat))
+				quartz()
+				plot(xValVect, meanYVal, t="b", xlab=colNames[i], ylab=avgErrMeasureName,  ...) # assuming xValVect is the same for all folds
+			}
+			
+		}
+	}
+}
+
 OrderPerformance = function(performanceByParameterValueOut, foldIdx, errMeasureName){
 	
 	res = performanceByParameterValueOut[[foldIdx]]
@@ -511,6 +551,9 @@ OrderPerformance = function(performanceByParameterValueOut, foldIdx, errMeasureN
 									# in doErrorFoldOutInnerList[[foldIdx]]
 	return(res)
 }
+
+
+
 #dims = 12
 #Cov <- matrix(0, dims, dims) 
 #Cov[1:4,1:4] = 0.9
