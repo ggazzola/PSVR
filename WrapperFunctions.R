@@ -7,7 +7,7 @@ GenerateData = function(){
 	if(realData){
 		dd = load(paste0(dataFolder, realDataFileName))
 		stopifnot("dat"%in%dd)
-		doDatOut = dat
+		doDatOut <<- dat
 	}
 	
 	while(!success){

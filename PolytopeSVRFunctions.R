@@ -171,7 +171,7 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 		whichNonMissingVarsMat = matrix(, nrow=n, ncol=numNonMissingVars)
 		betaMat = matrix(, nrow=n, ncol=numNonMissingVars)
 		innerProdVect = numeric(n)
-		for(i in 1:n){
+		for(i in 1:n){			
 			whichMissingVarsMat[i,]= sort(sample(totPotentialMissVar, numMissVar)) # sorting just for visualization purposes
 			whichNonMissingVarsMat[i,]= (1:(p-1))[-whichMissingVarsMat[i,]] 
 			betaMat[i, ] = whichNonMissingVarsMat[i,] # arbitrary... # note that this could make a difference, when the individual input variables

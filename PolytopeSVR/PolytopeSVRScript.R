@@ -30,6 +30,7 @@ corVal = 0.9
 
 
 maxGenerateDataAttempts = 20
+repVect=1:4 # # MUST DO MORE REPEATS, the results don't seem stable
 numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
@@ -57,10 +58,12 @@ if(!realData){
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
 	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
-	realDataFileName = "Communities.RData" # kept
+	#Communities.RData -- kept all; has natural NAs
+	#Ozone.RData -- removed V2, V3 (day 1-31, day of the week Mon-Sun); removed few observations with missing Y
+	realDataFileName = "Ozone.RData" # 
 	corVal = "irrelevant"
 	theoRsq = "irrelevant"
-	if(realDataFileName=="Communities.RData")
+	if(realDataFileName%in%c("Communities.RData", "Ozone.RData", "Automobile.RData"))
 		stopifnot(injectMissingness==F)
 	if(realDataFileName=="Boston.RData")
 		stopifnot(injectMissingness==T)
@@ -93,15 +96,14 @@ errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rms
 approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant")  ####################
 
 
-repVect=1:4 # # MUST DO MORE REPEATS, the results don't seem stable
 
 for(repIdx in repVect){
 	rejectSilently=F	
 	set.seed(repIdx)
 	GenerateData() # inefficient, because redundant with the below, but useful to do prescreening of generated data
 	if(realData){
-		n = nrow(dat)
-		p = ncol(dat)-1
+		n = nrow(doDatOut)
+		p = ncol(doDatOut)-1
 	}
 	if(givenUp)
 		stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
