@@ -57,9 +57,13 @@ if(!realData){
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
 	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
-	realDataFileName = "Automobile.RData" # kept
+	realDataFileName = "Communities.RData" # kept
 	corVal = "irrelevant"
-	theoRsq = "irrelevant" 
+	theoRsq = "irrelevant"
+	if(realDataFileName=="Communities.RData")
+		stopifnot(injectMissingness==F)
+	if(realDataFileName=="Boston.RData")
+		stopifnot(injectMissingness==T)
 }
 
 if(!injectMissingness){

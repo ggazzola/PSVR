@@ -525,6 +525,7 @@ PlotBestPerformanceByParameterValue = function(performanceByParameterValueOut, f
 				seYVal = apply(yValVectMat, 2, sd)/sqrt(nrow(yValVectMat))
 				quartz()
 				plot(xValVect, meanYVal, t="b", xlab=colNames[i], ylab=avgErrMeasureName,  ...) # assuming xValVect is the same for all folds
+				
 			}
 			
 		}
