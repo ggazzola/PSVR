@@ -7,6 +7,7 @@ GenerateData = function(){
 	if(realData){
 		dd = load(paste0(dataFolder, realDataFileName))
 		stopifnot("dat"%in%dd)
+		stopifnot(is.matrix(dat))
 		doDatOut <<- dat
 	}
 	
