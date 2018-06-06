@@ -11,8 +11,8 @@ source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
 dataFolder="../Data/"
 
-realData = F
-injectMissingness = T
+realData = T
+injectMissingness = F
 doMCAR = T 
 missingVarProp = 0.9 
 missingObsProp = 0.9

@@ -284,6 +284,7 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 	
 	medianOrientedBoxImputDat = matrix( , nrow=n, ncol = ncol(missDat))
 	colnames(medianOrientedBoxImputDat)= colnames(medianImputDat)
+	
 	for(i in 1:n){
 		#this loop is a small modification of an analogous loop in DOPOLYLIST()
 		currPoint = missDat[i,] 
@@ -305,6 +306,7 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 		} else{
 			singleDatRes = currPoint
 		}
+		
 		medianOrientedBoxImputDat[i, ] = singleDatRes
 	}	
 	
