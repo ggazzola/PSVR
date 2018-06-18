@@ -13,7 +13,7 @@ dataFolder="../Data/"
 
 realData = T
 injectMissingness = F
-doMCAR = T 
+doMCAR = F
 missingVarProp = 0.9 
 missingObsProp = 0.9
 corVal = 0.9
