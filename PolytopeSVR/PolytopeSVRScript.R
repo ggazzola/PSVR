@@ -218,16 +218,34 @@ for(repIdx in repVect){
 		}
 	}
 }
-				
-				
-				
-
-
 
 progressOut=paste("All results collected and saved in", resultsFolderName, "\n")
 cat(progressOut)
 write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	
+if(F){
+       numErrMeas = length(errMeasureVect)
+       numApproach = length(approachVect)
+       numRep = length(testRes)
+       meanMat = seMat = matrix(, nrow=numApproach , ncol=numErrMeas)
+       colnames(meanMat) = colnames(seMat) = errMeasureVect
+       rownames(meanMat) = rownames(seMat) = approachVect
+       
+       for(j in 1:numErrMeas){
+               errMeasure = errMeasureVect[j]
+               for(i in 1:numApproach){
+                       approach = approachVect[i]
+                       res = NULL
+                       for(k in 1:numRep)
+                               res = c(res, testRes[[k]][[errMeasure]][[approach]]$testErrorsAggregate)
+                       stopifnot(length(res)==numRep)
+                       meanMat[i,j] = mean(res)
+                       seMat[i,j] = sd(res)/sqrt(length(numRep))
+               }
+       }
+       
+}
+
 
 if(F){
 	for (errMeasure in errMeasureVect){
