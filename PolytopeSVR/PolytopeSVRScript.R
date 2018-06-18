@@ -30,7 +30,7 @@ corVal = 0.9
 
 
 maxGenerateDataAttempts = 20
-repVect=1:4 # # MUST DO MORE REPEATS, the results don't seem stable
+repVect=1:5 # # MUST DO MORE REPEATS, the results don't seem stable
 numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
