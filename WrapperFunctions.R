@@ -8,6 +8,12 @@ GenerateData = function(){
 		dd = load(paste0(dataFolder, realDataFileName))
 		stopifnot("dat"%in%dd)
 		stopifnot(is.matrix(dat))
+		if(realDataFileName=="Boston.RData"){
+			if(nSubSelect<Inf){
+				stopifnot(nSubSelect<=nrow(dat))
+				dat=dat[sample(nrow(dat), nSubSelect),]
+			}
+		}
 		doDatOut <<- dat
 	}
 	

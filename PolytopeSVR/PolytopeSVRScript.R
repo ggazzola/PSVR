@@ -12,7 +12,7 @@ source("../WrapperFunctions.R")
 dataFolder="../Data/"
 
 realData = T
-injectMissingness = F
+injectMissingness = T
 doMCAR = F
 missingVarProp = 0.9 
 missingObsProp = 0.9
@@ -30,7 +30,7 @@ corVal = 0.9
 
 
 maxGenerateDataAttempts = 20
-repVect=1:5 # # MUST DO MORE REPEATS, the results don't seem stable
+repVect=1:10 # # MUST DO MORE REPEATS, the results don't seem stable
 numFolds = 5#####################
 scaleData = T
 method = "pmm" #norm, cart, rf
@@ -60,7 +60,8 @@ if(!realData){
 	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
 	#Communities.RData -- kept all; has natural NAs
 	#Ozone.RData -- removed V2, V3 (day 1-31, day of the week Mon-Sun); removed few observations with missing Y
-	realDataFileName = "Ozone.RData" # 
+	nSubSelect = 100 #Inf
+	realDataFileName = "Boston.RData" # 
 	corVal = "irrelevant"
 	theoRsq = "irrelevant"
 	if(realDataFileName%in%c("Communities.RData", "Ozone.RData", "Automobile.RData"))
@@ -155,8 +156,10 @@ cnt = 1
 				
 
 if(!realData){
-	fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq)
-}		
+	fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq, "N", n)
+} else{
+	fileNameRoot = paste0(fileNameRoot, "N", nSubSelect)
+}
 
 testRes = list()
 
