@@ -60,11 +60,13 @@ if(!realData){
 	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
 	#Communities.RData -- kept all; has natural NAs
 	#Ozone.RData -- removed V2, V3 (day 1-31, day of the week Mon-Sun); removed few observations with missing Y
+	#Mammalsleep -- removed 'species' (useless factor with n levels), used 'bwt' as output (mammalsleep in mice)
+	#Dutch -- removed 'reg' (factor); 'gen', 'phb' (ordered factors) converted to numeric;used age (only one with no NAs) as output (boys in mice) 
 	nSubSelect = 100 #Inf
 	realDataFileName = "Boston.RData" # 
 	corVal = "irrelevant"
 	theoRsq = "irrelevant"
-	if(realDataFileName%in%c("Communities.RData", "Ozone.RData", "Automobile.RData"))
+	if(realDataFileName%in%c("Communities.RData", "Ozone.RData", "Automobile.RData", "Mammalsleep.RData", "Dutch.RData"))
 		stopifnot(injectMissingness==F)
 	if(realDataFileName=="Boston.RData")
 		stopifnot(injectMissingness==T)
@@ -251,6 +253,15 @@ if(F){
 
 
 if(F){
+	
+	#load("") must be the correct PC bb file!
+	res = PerformanceByParameterValue(doErrorFoldOutInnerList)	
+	PlotBestPerformanceByParameterValue (res, foldIdx=1:length(res), errMeasureName=errMeasureVect[1], parName= "all")
+	
+}
+
+if(F){
+	#load("") must be the last file (SquareQuant?)
 	for (errMeasure in errMeasureVect){
 		for(approach in approachVect){
 			cat(approach, errMeasure, testRes[[1]][[errMeasure]][[approach]]$testErrorsAggregate, "\n")
