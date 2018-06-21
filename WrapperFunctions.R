@@ -235,7 +235,7 @@ CalculateTestErrors = function(){
 		currModel = DoTrainModel(polyList=currTrainPolyList, parList = bestParList) # for the current error measure, select  parameters
 		#	that give the best error measure results in the validation set, train model on train + valid data, and then use same measure
 		#	to calculate testing performance
-		modelList[[i]] = modelList
+		modelList[[i]] = currModel
 		
 		currError = DoErrorList(doTrainModelOut=currModel, medianOrMeanImputOut=testMeanOrMedian, 
 			doPolyListOut=currTrainPolyList, missingDatOutLogical = missingTestDataLogical)[[errMeasure]]
