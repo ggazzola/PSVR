@@ -207,6 +207,7 @@ for(repIdx in repVect){
 			CalculateTestErrors() # choose best model based on errMeasure, train new model on outer training data, and test it
 			gc()
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrors = errVect 
+			testRes[[repIdx]][[errMeasure]][[approach]]$testModels = modelList 
 
 			stopifnot(length(errVect)==numFolds)
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect) 

@@ -193,6 +193,7 @@ SetUpTest = function(){
 
 CalculateTestErrors = function(){
 	errVect = NULL
+	modelList = list()
 
 	for(i in 1:length(getTrainResReadyForTest)){
 		outerProgressOut = paste("Outer testing", i, "out of ", length(getTrainResReadyForTest), "START at", date(), "\n")
@@ -234,6 +235,8 @@ CalculateTestErrors = function(){
 		currModel = DoTrainModel(polyList=currTrainPolyList, parList = bestParList) # for the current error measure, select  parameters
 		#	that give the best error measure results in the validation set, train model on train + valid data, and then use same measure
 		#	to calculate testing performance
+		modelList[[i]] = modelList
+		
 		currError = DoErrorList(doTrainModelOut=currModel, medianOrMeanImputOut=testMeanOrMedian, 
 			doPolyListOut=currTrainPolyList, missingDatOutLogical = missingTestDataLogical)[[errMeasure]]
 		errVect = c(errVect, currError)
@@ -242,6 +245,8 @@ CalculateTestErrors = function(){
 		write.table(outerProgressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 	}
 	errVect <<-errVect
+	modelList <<- modelList
+	
 }
 
 CollectTestPerformance=function(errMes, appr){
