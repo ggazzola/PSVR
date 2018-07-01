@@ -164,13 +164,24 @@ if(!realData){
 }
 
 testRes = list()
-
+numFailedImputReps = 0
+maxNumReps = length(repVect)*2
 for(repIdx in repVect){
 	testRes[[repIdx]]=list()
 	rejectSilently=T	
 	set.seed(repIdx)
 	GenerateData()
 	MultiplyImpute()
+	if(imputationsFailed){
+		#imputationsFailed is declared by MultiplyImpute()
+		numFailedImputReps = numFailedImputReps+1
+		if(numFailedImputReps>maxNumReps)
+			stop("Too many failed imputations\n")
+			
+		remainingRepNum = max(repVect)-repIdx 
+		repVect = (repIdx+1):(repIdx+1+remainingRepNum)
+		
+	}
 	gc()
 
 	for(approach in approachVect){
@@ -255,7 +266,8 @@ if(F){
 
 if(F){
 	
-	#load("") must be the correct PC bb file!
+	#load("") must be the correct PC bb file! # note -- this will plot the validation error, calculated as a mean across the 5 inner folds of each outer fold i (as given by doErrorFoldOutInnerList[[i]]),  and a subsequent grand mean over all outer folds i --> note that this grand mean is such that the min value of the curve across all hyper-parameters may differ (it wouldn't if we plotted
+	# one curve per outer fold separately)
 	res = PerformanceByParameterValue(doErrorFoldOutInnerList)	
 	PlotBestPerformanceByParameterValue (res, foldIdx=1:length(res), errMeasureName=errMeasureVect[1], parName= "all")
 	
