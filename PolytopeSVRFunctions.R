@@ -265,7 +265,10 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 		for(j in 1:numImput){
 			tmpImpMat = as.matrix(complete(multiImputDat, j)[1:n,])
 			if(any(is.na(tmpImpMat))){
+				imputationsFailed <<- T
 				stop("Imputation didn't work along all variables (collinearity...)\n")
+			} else{
+				imputationsFailed <<- F
 			}
 			imputDatList[[j]] = tmpImpMat
 			row.names(imputDatList[[j]]) = NULL
