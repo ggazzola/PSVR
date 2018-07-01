@@ -225,15 +225,36 @@ PCConstraintsFull = function(dat, propIn = .8,  projectDimsLogical = NULL, getMe
 		}
 		res = solve(lhs, rhs) # this is the median of the box calculated in PC space 
 	} else{
-		projDatSd = as.numeric(apply(projDat, 2, sd))
+		projDatSd = as.numeric(apply(projDat, 2, sd)) # Given the arrangement of fullDimPc, the TRUES should correspond to the first numUncertainDims dimensions (or a even a subset of the first them, in case the PC projection along the dimensions associated with close to zero eigenvalues (variance) happens to bring that projection to numerically constant, although it theoretically not constant)
 		nonConstantProjDatDimsLogical = projDatSd>0
 		constantProjDatDimsLogical = projDatSd==0
+		
+		correctlyNumericallyConstantButExpectedToBeNonConstantProjected = NULL 
+		if(numUncertainDims>0){ #
+			constantButExpectedToBeNonConstantProjected = nonConstantProjDatDimsLogical!=c(rep(TRUE, numUncertainDims), rep(FALSE, p-numUncertainDims))
+			if(any(constantButExpectedToBeNonConstantProjected))	{
+				if(which(constantButExpectedToBeNonConstantProjected)!=which(pc$sdev<.Machine$double.eps*2)){
+					stop("Unexpected costant PC-projected dimension\n") # all uncertain dimensions in general should be projected to uncertain dimensions (with positive variance), unless the PC projection is itself numerically zero-variance
+					
+				} else{
+					correctlyNumericallyConstantButExpectedToBeNonConstantProjected = constantButExpectedToBeNonConstantProjected
+				}
+			}
+		}
+		
 		maxProjDat = as.numeric(apply(projDat, 2, quantile, probs=upperQuantile)) #  largest-coordinate point along each pc box
 
 		if(any(constantProjDatDimsLogical))
 			minProjDat[constantProjDatDimsLogical] =  maxProjDat[constantProjDatDimsLogical] #  else min/max may come out of quantile numerically different 
-		maxNoLargerThanMinNonConstantProjDatDimsLogical = (maxProjDat - minProjDat<=0) & nonConstantProjDatDimsLogical
-			 # this could still happen along non-constant dims b/c of quantile (although with propIn>0 it should never happen)
+		
+		if(is.null(correctlyNumericallyConstantButExpectedToBeNonConstantProjected)){ 
+			maxNoLargerThanMinNonConstantProjDatDimsLogical = (maxProjDat - minProjDat<=0) & nonConstantProjDatDimsLogical
+		 	# to take care of dimensions that become numerically constant b/c of quantile~0 (although with propIn>0 it should never happen)
+		} else {
+			maxNoLargerThanMinNonConstantProjDatDimsLogical = (maxProjDat - minProjDat<=0) & (nonConstantProjDatDimsLogical | 
+				correctlyNumericallyConstantButExpectedToBeNonConstantProjected) 
+			 	# to take care of dimensions that become numerically constant b/c of numerically-zero PC projections
+		}
 		if(any(maxNoLargerThanMinNonConstantProjDatDimsLogical)){
 			#print(ifelse(propIn>0, 1e-16, 0))
 			#print(minProjDat[maxNoLargerThanMinNonConstantProjDatDimsLogical])
