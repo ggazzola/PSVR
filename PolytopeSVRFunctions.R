@@ -42,6 +42,8 @@ DoScale = function(dat){
 	dat = scale(dat)  
 	datMean =  as.numeric(attr(dat, "scaled:center"))
 	datSd =  as.numeric(attr(dat, "scaled:scale"))
+	datSd[datSd==0]=1 # these are constant dimensions ==> we don't want to rescale by dividing by 0; instead 
+					    #we'll divide by one, which is the equivalent of not rescaling
 	#outDat = ScaleCenter(outDat, inDatMean, inDatSd)  	
 
 	return(list(mean=datMean, std=datSd))
@@ -416,6 +418,7 @@ DoPolyList = function(missDat, imputDatList, medianOrientedOrNonOrientedImputDat
 
 		} else{
 			scaleInfo  = DoScale(medianOrientedOrNonOrientedImputDat)
+			stopifnot(all(scaleInfo$std>0))
 			# note that this is scaling is different from that of doSquareBB above (here we consider also the imputed values, above we don't)
 			if(doOrientedbb){
 				medianOrientedOrNonOrientedImputDat = ScaleCenter(medianOrientedOrNonOrientedImputDat, scaleInfo$mean, scaleInfo$std)
