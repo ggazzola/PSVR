@@ -179,7 +179,7 @@ for(repIdx in repVect){
 			stop("Too many failed imputations\n")
 			
 		remainingRepNum = max(repVect)-repIdx 
-		repVect = (repIdx+1):(repIdx+1+remainingRepNum)
+		repVect = (repIdx+1):(repIdx+1+remainingRepNum) # BUGBUGBUG WON'T WORK --> repVect above isn't redeclared within the loop
 		
 	}
 	gc()
@@ -257,7 +257,7 @@ if(F){
                                res = c(res, testRes[[k]][[errMeasure]][[approach]]$testErrorsAggregate)
                        stopifnot(length(res)==numRep)
                        meanMat[i,j] = mean(res)
-                       seMat[i,j] = sd(res)/sqrt(length(numRep))
+                       seMat[i,j] = sd(res)/sqrt(numRep)
                }
        }
        
