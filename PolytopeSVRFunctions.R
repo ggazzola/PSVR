@@ -302,7 +302,7 @@ DoMultipleImputation = function(missDat, method, numImput, maxIter, extraPossibl
 			if(all(apply(singleMissDatMultImput, 2, sd)==0)){
 				cat("WARNING: All imputations are identical\n")
 				currPointConstantImput = singleMissDatMultImput[1,] # any row is ok, since they are all equal
-				singleDatRes = FixedPointConstraints(currPointConstantImput) # fixed-point bounding box around constant imputation
+				singleDatRes = currPointConstantImput#FixedPointConstraints(currPointConstantImput) # fixed-point bounding box around constant imputation #July 22, 2018 changed to currPointConstantImput (it looks like we need a fixed point here, no need to do any processing because all imputations are equal)
 				currUncertainty = 0
 			} else{
 				singleDatRes = PCConstraintsFull(dat=singleMissDatMultImput, propIn=0, getMedian=T) # extracting bounding box for i-th point's multiple imputations
