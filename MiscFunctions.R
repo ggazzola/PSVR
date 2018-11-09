@@ -86,6 +86,9 @@ PcBBUncertainty = function(overallPCConstraintsFullOut, subsetPCConstraintsFullO
 	
 	res = min(meanLengthSubset/meanLengthOverall*length(subset$volumeDims)/maxUncertainDims,1) #ratio between lengths, reweighted by 
 							# ratio of the number of  uncertain dimensions in the point over the total number of dimensions (or over the number of missing dimensions in the overall data )
+							
+							#BUGBUGBUG: note not equivalent to meanLengthSubset/meanLengthOverall*min(length(subset$volumeDims)/maxUncertainDims,1)), which is what we said in the dissertation/paper! Also, in dissertation/paper datMissP cannot be larger than (p+1)-1 (not all variables can be missing at the same time--although maybe could do multiple imputations even on p+1 values at a time?). Maybe fix? But all results collected until defense use this formula
+							
 	return(res)
 }
 
@@ -523,13 +526,151 @@ PlotBestPerformanceByParameterValue = function(performanceByParameterValueOut, f
 			if(goAhead){
 				meanYVal = apply(yValVectMat, 2, mean)
 				seYVal = apply(yValVectMat, 2, sd)/sqrt(nrow(yValVectMat))
-				quartz()
-				plot(xValVect, meanYVal, t="b", xlab=colNames[i], ylab=avgErrMeasureName,  ...) # assuming xValVect is the same for all folds
+				yLab = avgErrMeasureName
+				if(avgErrMeasureName=="averagermse") yLab = expression(e[rms])
+				if(avgErrMeasureName=="averagemae") yLab = expression(e[ma])
+				if(avgErrMeasureName=="averagequantEightAe") yLab = expression(e[q.8a])
+				if(avgErrMeasureName=="averageMaxae") yLab = expression(e[maxa])
+				if(avgErrMeasureName=="averagermseCert") yLab = expression(e[rms]^c)
+				if(avgErrMeasureName=="averagemaeCert") yLab = expression(e[ma]^c)
+				if(avgErrMeasureName=="averagequantEightAeCert") yLab = expression(e[q.8a]^c)
+				if(avgErrMeasureName=="averageMaxaeCert") yLab = expression(e[maxa]^c)
+				if(avgErrMeasureName=="averagermseUncert") yLab = expression(e[rms]^u)
+				if(avgErrMeasureName=="averagemaeUncert") yLab = expression(e[ma]^u)
+				if(avgErrMeasureName=="averagequantEightAeUncert") yLab = expression(e[q.8a]^u)
+				if(avgErrMeasureName=="averageMaxaeUncert") yLab = expression(e[maxa]^u)
+				
+				xLab = colNames[i]
+				if(colNames[i]=="Ccertain") xLab = "c"
+				if(colNames[i]=="Cuncertain") xLab = expression(c^u)
+				if(colNames[i]=="epsilonCertain") xLab = expression(epsilon)
+				if(colNames[i]=="extraEpsilonUncertain") xLab = expression(epsilon^u)
+				if(colNames[i]=="quantOrSdProp") xLab = "s"
+				
+				pdf(file=paste0(resultsFolderName, "Fold", foldIdx, "Err", yLab, "Par", xLab, ".pdf"))
+				par(mar=c(5,5,1.5,0.5))
+				size=1.5
+				plot(xValVect, meanYVal, t="b", xlab=xLab, ylab=yLab, cex.lab = size, cex.axis=size, lwd=size, cex=size, ...) # assuming xValVect is the same for all folds
+				dev.off()
 				
 			}
 			
 		}
 	}
+}
+
+PlotBestPerformanceByParameterValueOverlap = function(performanceByParameterValueOut, foldIdx, ...){
+	
+	parNameToShow = c("Ccertain","Cuncertain","epsilonCertain","extraEpsilonUncertain","quantOrSdProp")
+	errMeasureVectToShow = c("rmse", "mae", "quantEightAe", "Maxae",  
+							"rmseCert", "maeCert", "quantEightAeCert", "MaxaeCert",
+							"rmseUncert", "maeUncert", "quantEightAeUncert",  "MaxaeUncert")
+	parCols = attr(performanceByParameterValueOut, "parColumns")
+	colNames = colnames(performanceByParameterValueOut[[foldIdx[1]]]) # assuming constant across folds
+
+	for(errMeasureName in errMeasureVectToShow){			
+		avgErrMeasureName = paste0(attr(performanceByParameterValueOut, "avgName"), errMeasureName)
+		minY = Inf
+		maxY = -Inf
+		meanYValList = list()
+		for(i in parCols){
+			if(colNames[i]%in%parNameToShow){
+				yValVectMat = NULL
+				goAhead = T
+				for(k in foldIdx){
+					if(goAhead){
+						res = performanceByParameterValueOut[[k]]
+						stopifnot(avgErrMeasureName%in%colNames)
+						errVect = res[[avgErrMeasureName]]
+						if(any(res[,i]!=-Inf) & length(unique(res[,i]))>1){
+							stopifnot(all(res[,i]!=-Inf))
+							yValVect = NULL
+							xValVect = sort(unique(res[,i]))
+							for(j in xValVect){
+								yValVect = c(yValVect, min(errVect[res[,i]==j]))
+							}				
+					
+							yValVectMat = rbind(yValVectMat, yValVect)
+						} else {
+							goAhead = F
+						}
+					} 
+				}
+				if(goAhead){
+
+					meanYVal = apply(yValVectMat, 2, mean)
+					seYVal = apply(yValVectMat, 2, sd)/sqrt(nrow(yValVectMat))
+					yLab = avgErrMeasureName
+					if(avgErrMeasureName=="averagermse") yLab = expression(e[rms])
+					if(avgErrMeasureName=="averagemae") yLab = expression(e[ma])
+					if(avgErrMeasureName=="averagequantEightAe") yLab = expression(e[q.8a])
+					if(avgErrMeasureName=="averageMaxae") yLab = expression(e[maxa])
+					if(avgErrMeasureName=="averagermseCert") yLab = expression(e[rms]^c)
+					if(avgErrMeasureName=="averagemaeCert") yLab = expression(e[ma]^c)
+					if(avgErrMeasureName=="averagequantEightAeCert") yLab = expression(e[q.8a]^c)
+					if(avgErrMeasureName=="averageMaxaeCert") yLab = expression(e[maxa]^c)
+					if(avgErrMeasureName=="averagermseUncert") yLab = expression(e[rms]^u)
+					if(avgErrMeasureName=="averagemaeUncert") yLab = expression(e[ma]^u)
+					if(avgErrMeasureName=="averagequantEightAeUncert") yLab = expression(e[q.8a]^u)
+					if(avgErrMeasureName=="averageMaxaeUncert") yLab = expression(e[maxa]^u)
+				
+					xLab = colNames[i]
+					if(colNames[i]=="Ccertain") xLab2 = "c"
+					if(colNames[i]=="Cuncertain") xLab2 = expression(c^u)
+					if(colNames[i]=="epsilonCertain") xLab2 = expression(epsilon)
+					if(colNames[i]=="extraEpsilonUncertain") xLab2 = expression(epsilon^u)
+					if(colNames[i]=="quantOrSdProp") xLab2 = "s"
+				
+					meanYValList[[xLab]] = list()
+					meanYValList[[xLab]]$x = xValVect
+					meanYValList[[xLab]]$y = meanYVal
+					meanYValList[[xLab]]$xLab = xLab2
+					minY = min(minY, min(meanYVal))
+					maxY = max(maxY, max(meanYVal))
+					
+					#pdf(file=paste0(resultsFolderName, "Fold", foldIdx, "Err", yLab, "Par", xLab, ".pdf"))
+					#par(mar=c(5,5,1.5,0.5))
+					#size=1.5
+					#plot(xValVect, meanYVal, t="b", xlab=xLab, ylab=yLab, cex.lab = size, cex.axis=size, lwd=size, cex=size, ...) # assuming xValVect is the same for all folds
+					#dev.off()
+				} else{
+					stop()
+				}
+			}
+		}
+		#pdf(file=paste0(resultsFolderName, "Fold", foldIdx, "Err", yLab, ".pdf"), width=10, height=10)
+		pdf(file=paste0("Fold", foldIdx, "Err", yLab, ".pdf"), width=10, height=10)
+		
+		par(mar=c(5,5,1.5,0.5))
+		size=1.5
+		xLabVect = NULL
+		for(ii in 1:length(meanYValList)){
+			#if(!exists("yLim"))
+				yLim = c(minY, maxY)
+				
+			#if(!exists("Log"))
+				Log = "y"
+			
+			#if(!exists("legendYCoord"))
+				legendYCoord = maxY
+				
+			xLabVect = c(xLabVect, meanYValList[[ii]]$xLab)
+			if(ii<length(meanYValList)){
+				plot(meanYValList[[ii]]$x, meanYValList[[ii]]$y, xaxt="n", yaxt="n", t="b", xlab="", ylab="", 
+					lwd=size, cex=size, col=ii, ylim=yLim, log=Log) # assuming xValVect is the same for all folds; Note log transform along Y
+				par(new=T)
+			} else{	
+				plot(meanYValList[[ii]]$x, meanYValList[[ii]]$y, xaxt="n", yaxt="n", t="b", ylab=yLab, xlab="Hyper-parameter value", 
+					lwd=size, cex=size, col=ii, ylim=yLim, log=Log, cex.lab=size) # assuming xValVect is the same for all folds; Note log transform along Y
+			}
+		}
+		axis(1, at=c(0, max(meanYValList[[ii]]$x)), labels=c("Min (0)", "Max"), cex.axis=size, cex.lab = size)
+		axis(2, cex.axis=size, cex.lab = size)
+		legend(0+0.025*diff(range(meanYValList[[ii]]$x)), legendYCoord, xLabVect, fill=1:length(meanYValList), bty="n", cex=size)
+		
+		dev.off()
+	}
+	
 }
 
 OrderPerformance = function(performanceByParameterValueOut, foldIdx, errMeasureName){
