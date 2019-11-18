@@ -248,7 +248,7 @@ for(repIdx in repVect){
 }
 
 
-numHyperPar = sapply(parValueList, length)*length(quantOrSdPropValues)
+numHyperPar = prod(sapply(parValuesList, length))*length(quantOrSdPropValues)
 numErrMeasure = length(errMeasureVect)
 save(times,missingVarProp,missingObsProp,repVect,numFolds,maxIter,numImput, n, p, approachVect, numHyperPar, numErrMeasure, 
 	file=paste0(resultsFolderName, "/", paste0("Essentials", fileName)))
