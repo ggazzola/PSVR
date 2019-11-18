@@ -31,7 +31,7 @@ corVal = 0.5
 
 maxGenerateDataAttempts = 20
 repVect=1 # ######PAPERCHANGE?       MUST DO MORE REPEATS, the results don't seem stable
-numFolds = 2#### #####PAPERCHANGE?
+numFolds = 3#### #####PAPERCHANGE?
 scaleData = T
 method = "pmm" #norm, cart, rf
 maxIter = 10 #####PAPERCHANGE? ################ try with small numbers of these two, to verify if imputation is possible first
@@ -47,8 +47,8 @@ if(T){
 }
 
 if(!realData){
-	n = 50 ######PAPERCHANGE do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
-	p = 5 #####PAPERCHANGE
+	n = 100 ######PAPERCHANGE do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	p = 10 #####PAPERCHANGE
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
 	trueW = 1:p
@@ -80,10 +80,10 @@ if(!injectMissingness){
 }
 
 parValuesList = list( #####PAPERCHANGE?
-	Ccertain=c(0, 2,  5) # add one
-	Cuncertain=c(0, 2, 5) # add one
-	epsilonCertain=c(0,  .5, 1) # # add one
-	extraEpsilonUncertain = c(0, .5, 1) # add one
+	Ccertain=c(0, 1, 2,  5), # add one
+	Cuncertain=c(0, 1, 2, 5), # add one
+	epsilonCertain=c(0,  0.25, .5, 1), # # add one
+	extraEpsilonUncertain = c(0, 0.25, .5, 1), # add one
 	#Ccertain=c(0, .05, .1, .5, 1, 2, 5)
 	#Cuncertain=c(0, .05, .1, .5, 1, 2, 5)
 	#epsilonCertain=c(0, 0.25, .5, 1) # no sense having these large if standardizing output (so to magnitude within 1 or so..)
@@ -233,7 +233,6 @@ for(repIdx in repVect){
 
 			stopifnot(length(errVect)==numFolds)
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect) 
-			times$aggregatetesterrors[[errMeasure]] = Sys.time()				
 			
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
 
