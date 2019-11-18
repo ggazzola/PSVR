@@ -14,9 +14,9 @@ dataFolder="../Data/"
 realData = F
 injectMissingness = T
 doMCAR = F
-missingVarProp = 0.5 #####PAPERCHANGE
-missingObsProp = 0.5 #####PAPERCHANGE
-corVal = 0.9
+missingVarProp = 0.2 #####PAPERCHANGE
+missingObsProp = 0.2 #####PAPERCHANGE
+corVal = 0.5
 # do .9, .9, X; .3 .3 X, with X = 0.3, .9
 # MAR only?
 
@@ -31,11 +31,11 @@ corVal = 0.9
 
 maxGenerateDataAttempts = 20
 repVect=1 # ######PAPERCHANGE?       MUST DO MORE REPEATS, the results don't seem stable
-numFolds = 5#### #####PAPERCHANGE?
+numFolds = 2#### #####PAPERCHANGE?
 scaleData = T
 method = "pmm" #norm, cart, rf
-maxIter = 20 #####PAPERCHANGE? ################ try with small numbers of these two, to verify if imputation is possible first
-numImput = 40 #####PAPERCHANGE?
+maxIter = 10 #####PAPERCHANGE? ################ try with small numbers of these two, to verify if imputation is possible first
+numImput = 20 #####PAPERCHANGE?
 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
@@ -47,8 +47,8 @@ if(T){
 }
 
 if(!realData){
-	n = 100 ######PAPERCHANGE do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
-	p = 10 #####PAPERCHANGE
+	n = 50 ######PAPERCHANGE do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	p = 5 #####PAPERCHANGE
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
 	trueW = 1:p
@@ -80,20 +80,24 @@ if(!injectMissingness){
 }
 
 parValuesList = list( #####PAPERCHANGE?
-	Ccertain=c(0, .05, .1, .5, 1, 2, 5),#c(0,10^(-2:1)),   ##################
-	Cuncertain=c(0, .05, .1, .5, 1, 2, 5),#c(0,10^(-2:1)), ##################
-	epsilonCertain=c(0, 0.25, .5, 1),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	extraEpsilonUncertain = c(0, 0.25, .5, 1),# c(0,10^(-2:1)),  ################# for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0, 2,  5) # add one
+	Cuncertain=c(0, 2, 5) # add one
+	epsilonCertain=c(0,  .5, 1) # # add one
+	extraEpsilonUncertain = c(0, .5, 1) # add one
+	#Ccertain=c(0, .05, .1, .5, 1, 2, 5)
+	#Cuncertain=c(0, .05, .1, .5, 1, 2, 5)
+	#epsilonCertain=c(0, 0.25, .5, 1) # no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	#extraEpsilonUncertain = c(0, 0.25, .5, 1), for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 	#####PAPERCHANGE?
-quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1)#c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
-#errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
-#	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
+quantOrSdPropValues = c(0,  0.5, 1)#c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
+	
+#quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1)#c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
+
 errMeasureVect=c("mae", "rmse", "Maxae", "maeCert", "rmseCert", "MaxaeCert", 
 	"maeUncert", "rmseUncert", "MaxaeUncert") #maeCert #maeUncert, ...
-#approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
 approachVect = c("doPCbb")#, "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant")  ####################
 
 
