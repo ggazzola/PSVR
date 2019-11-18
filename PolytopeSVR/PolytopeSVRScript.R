@@ -11,11 +11,11 @@ source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
 dataFolder="../Data/"
 
-realData = T
+realData = F
 injectMissingness = T
 doMCAR = F
-missingVarProp = 0.9 
-missingObsProp = 0.9
+missingVarProp = 0.5 #####PAPERCHANGE
+missingObsProp = 0.5 #####PAPERCHANGE
 corVal = 0.9
 # do .9, .9, X; .3 .3 X, with X = 0.3, .9
 # MAR only?
@@ -30,12 +30,12 @@ corVal = 0.9
 
 
 maxGenerateDataAttempts = 20
-repVect=1:10 # # MUST DO MORE REPEATS, the results don't seem stable
-numFolds = 5#####################
+repVect=1 # ######PAPERCHANGE?       MUST DO MORE REPEATS, the results don't seem stable
+numFolds = 5#### #####PAPERCHANGE?
 scaleData = T
 method = "pmm" #norm, cart, rf
-maxIter = 20 ################ try with small numbers of these two, to verify if imputation is possible first
-numImput = 40 ###############
+maxIter = 20 #####PAPERCHANGE? ################ try with small numbers of these two, to verify if imputation is possible first
+numImput = 40 #####PAPERCHANGE?
 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
@@ -47,8 +47,8 @@ if(T){
 }
 
 if(!realData){
-	n = 100 # do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
-	p = 10
+	n = 100 ######PAPERCHANGE do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	p = 10 #####PAPERCHANGE
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
 	trueW = 1:p
@@ -79,7 +79,7 @@ if(!injectMissingness){
 	doMCAR = "irrelevant"
 }
 
-parValuesList = list(
+parValuesList = list( #####PAPERCHANGE?
 	Ccertain=c(0, .05, .1, .5, 1, 2, 5),#c(0,10^(-2:1)),   ##################
 	Cuncertain=c(0, .05, .1, .5, 1, 2, 5),#c(0,10^(-2:1)), ##################
 	epsilonCertain=c(0, 0.25, .5, 1),#c(0,10^(-2:1)),  ################## no sense having these large if standardizing output (so to magnitude within 1 or so..)
@@ -87,16 +87,14 @@ parValuesList = list(
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
-
-
+	#####PAPERCHANGE?
 quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1)#c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
-#errMeasureVect=c("mae", "rmse", "Maxae", "cor", "quantNineAe", "quantEightAe", "quantSevenAe",
-#"maeCert", "rmseCert", "MaxaeCert", "quantNineAeCert", "quantEightAeCert", "quantSevenAeCert", "corCert",
-#"maeUncert", "rmseUncert", "MaxaeUncert", "quantNineAeUncert", "quantEightAeUncert", "quantSevenAeUncert", "corUncert") #maeCert #maeUncert, ...
-errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
-	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
+#errMeasureVect=c("mae", "rmse", "Maxae", "cor",  "quantEightAe", "maeCert", "rmseCert", "MaxaeCert",  "corCert", "quantEightAeCert",
+#	"maeUncert", "rmseUncert", "MaxaeUncert", "corUncert", "quantEightAeUncert") #maeCert #maeUncert, ...
+errMeasureVect=c("mae", "rmse", "Maxae", "maeCert", "rmseCert", "MaxaeCert", 
+	"maeUncert", "rmseUncert", "MaxaeUncert") #maeCert #maeUncert, ...
 #approachVect = c("doPCbb", "doSquarebbSd", "doSquarebbQuant", "doMedian", "doNoMiss")  ####################
-approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant")  ####################
+approachVect = c("doPCbb")#, "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant")  ####################
 
 
 
@@ -158,7 +156,7 @@ cnt = 1
 				
 
 if(!realData){
-	fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq, "N", n)
+	fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq, "N", n, "P", p)
 } else{
 	fileNameRoot = paste0(fileNameRoot, "N", nSubSelect)
 }
@@ -166,12 +164,17 @@ if(!realData){
 testRes = list()
 numFailedImputReps = 0
 maxNumReps = length(repVect)*2
+times <- NULL
+times$start = Sys.time()
 for(repIdx in repVect){
 	testRes[[repIdx]]=list()
 	rejectSilently=T	
 	set.seed(repIdx)
 	GenerateData()
+	times$generatedata = Sys.time()
 	MultiplyImpute()
+	times$multiplyimpute = Sys.time()
+	
 	if(imputationsFailed){
 		#imputationsFailed is declared by MultiplyImpute()
 		numFailedImputReps = numFailedImputReps+1
@@ -194,7 +197,11 @@ for(repIdx in repVect){
 		write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progressFile)
 		
 		CalculateValidationErrors() # errors calculated with all possible error measures
+		times$calculatevalidationerrors = Sys.time()
+				
 		gc()
+		
+		
 		for(errMeasure in errMeasureVect){
 
 			if(is.null(testRes[[repIdx]][[errMeasure]]))
@@ -222,6 +229,8 @@ for(repIdx in repVect){
 
 			stopifnot(length(errVect)==numFolds)
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsAggregate=AggregateTestError(errVect) 
+			times$aggregatetesterrors[[errMeasure]] = Sys.time()				
+			
 			testRes[[repIdx]][[errMeasure]][[approach]]$testErrorsSd=sd(errVect)
 
 			progressOut=paste("Combination", cnt, "out of", totComb, "DONE at", date(), "\n")
@@ -233,8 +242,17 @@ for(repIdx in repVect){
 			cnt = cnt+1
 			
 		}
+		times$calculatetesterrors = Sys.time()				
+		
 	}
 }
+
+
+numHyperPar = sapply(parValueList, length)*length(quantOrSdPropValues)
+numErrMeasure = length(errMeasureVect)
+save(times,missingVarProp,missingObsProp,repVect,numFolds,maxIter,numImput, n, p, approachVect, numHyperPar, numErrMeasure, 
+	file=paste0(resultsFolderName, "/", paste0("Essentials", fileName)))
+
 
 progressOut=paste("All results collected and saved in", resultsFolderName, "\n")
 cat(progressOut)
