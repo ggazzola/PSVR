@@ -24,7 +24,12 @@ errMeasureVectNew = c(
 numRep = length(testRes)
 
 resMatList =  list()
+cnt = 1
 for(nRep in 1:numRep){ 
+	if(is.null(testRes[[cnt]])){
+		cat("WARNING: repeat", nRep, "IS EMPTY\n")
+		next
+	}
 	resMat =  matrix(, nrow=length(approachVectWanted), ncol=length(errMeasureVectWanted))
  
 	for(j in 1:length(errMeasureVectWanted)) {
@@ -34,7 +39,8 @@ for(nRep in 1:numRep){
 			resMat[i,j]=testRes[[nRep]][[errMeasure]][[approach]]$testErrorsAggregate
 		}
 	}	
-	resMatList[[nRep]] = resMat
+	resMatList[[cnt]] = resMat
+	cnt = cnt +1
 
 }
 
@@ -44,8 +50,8 @@ meanResMat = seResMat = matrix(, nrow=length(approachVectWanted), ncol=length(er
 for(j in 1:length(errMeasureVectWanted)) {
 	for(i in 1:length(approachVectWanted)) {
 		vect = NULL
-		for(nRep in 1:numRep){
-			vect = c(vect, resMatList[[nRep]][i,j])
+		for(k in 1:length(resMatList)){
+			vect = c(vect, resMatList[[k]][i,j])
 		}	
 		meanResMat[i,j] = round(mean(vect),3)
 		seResMat[i,j] = round(sd(vect)/sqrt(numRep),3)
