@@ -11,11 +11,11 @@ source("PolytopeSVR.R")
 source("../WrapperFunctions.R")
 dataFolder="../Data/"
 
-realData = F
-injectMissingness = T
+realData = T
+injectMissingness = F
 doMCAR = F
-missingVarProp = 0.2 #####PAPERCHANGE
-missingObsProp = 0.2 #####PAPERCHANGE
+missingVarProp = 0.9 #####PAPERCHANGE
+missingObsProp = 0.9 #####PAPERCHANGE
 corVal = 0.5
 # do .9, .9, X; .3 .3 X, with X = 0.3, .9
 # MAR only?
@@ -31,11 +31,11 @@ corVal = 0.5
 
 maxGenerateDataAttempts = 20
 repVect=1 # ######PAPERCHANGE?       MUST DO MORE REPEATS, the results don't seem stable
-numFolds = 3#### #####PAPERCHANGE?
+numFolds = 5#### #####PAPERCHANGE?
 scaleData = T
-method = "pmm" #norm, cart, rf
-maxIter = 10 #####PAPERCHANGE? ################ try with small numbers of these two, to verify if imputation is possible first
-numImput = 20 #####PAPERCHANGE?
+method = "pmm" #########################################################!!!!!!!!!!!!!!!!!!!!! pmm, #norm, cart, rf
+maxIter = 20 #####PAPERCHANGE? ################ try with small numbers of these two, to verify if imputation is possible first
+numImput = 40 #####PAPERCHANGE?
 
 AggregateTestError = mean
 replaceImputedWithTrueY = F
@@ -47,7 +47,7 @@ if(T){
 }
 
 if(!realData){
-	n = 100 ######PAPERCHANGE do 120 for 10 folds is the least to have at least one miss/non miss point if missingObsPropVect = 0.1 or 0.9
+	n = 100 ######PAPERCHANGE do 120 for 10 folds is the least to have at least one missnon miss point if missingObsPropVect = 0.1 or 0.9
 	p = 10 #####PAPERCHANGE
 	meanVect = rep(0,p) 
 	stdVect = rep(1, p)
@@ -58,17 +58,18 @@ if(!realData){
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
 	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
-	#Communities.RData -- kept all; has natural NAs
+	#Communities.RData -- kept all; has natural NAs -- seems like imputations with pmm always fail
 	#Ozone.RData -- removed V2, V3 (day 1-31, day of the week Mon-Sun); removed few observations with missing Y
 	#Mammalsleep -- removed 'species' (useless factor with n levels), used 'bwt' as output (mammalsleep in mice)
+	#Wpbc -- removed V1, V2, V3, made original V3 output; removed 4 observations with missing output
 	#Dutch -- removed 'reg' (factor); 'gen', 'phb' (ordered factors) converted to numeric;used age (only one with no NAs) as output (boys in mice) 
-	nSubSelect = 100 #Inf
-	realDataFileName = "Boston.RData" # 
+	nSubSelect = Inf
+	realDataFileName = "Communities.RData" # 
 	corVal = "irrelevant"
 	theoRsq = "irrelevant"
 	if(realDataFileName%in%c("Communities.RData", "Ozone.RData", "Automobile.RData", "Mammalsleep.RData", "Dutch.RData"))
 		stopifnot(injectMissingness==F)
-	if(realDataFileName=="Boston.RData")
+        if(realDataFileName%in%c("Wpbc.RData","Boston.RData"))
 		stopifnot(injectMissingness==T)
 }
 
@@ -80,21 +81,16 @@ if(!injectMissingness){
 }
 
 parValuesList = list( #####PAPERCHANGE?
-	Ccertain=c(0, 1, 2,  5), # add one
-	Cuncertain=c(0, 1, 2, 5), # add one
-	epsilonCertain=c(0,  0.25, .5, 1), # # add one
-	extraEpsilonUncertain = c(0, 0.25, .5, 1), # add one
-	#Ccertain=c(0, .05, .1, .5, 1, 2, 5)
-	#Cuncertain=c(0, .05, .1, .5, 1, 2, 5)
-	#epsilonCertain=c(0, 0.25, .5, 1) # no sense having these large if standardizing output (so to magnitude within 1 or so..)
-	#extraEpsilonUncertain = c(0, 0.25, .5, 1), for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
+	Ccertain=c(0, .05, .1, .5, 1, 2, 5),
+	Cuncertain=c(0, .05, .1, .5, 1, 2, 5),
+	epsilonCertain=c(0, 0.25, .5, 1), # no sense having these large if standardizing output (so to magnitude within 1 or so..)
+	extraEpsilonUncertain = c(0, 0.25, .5, 1),#, for the two UNCERTAIN METAPARAMETERS, GO BACK TO THE DEFINITIONS TO CHECK IF THIS SCALE IS OK
 	uncertaintySpecialTreatment = T,
 	linear =T
 	)	
 	#####PAPERCHANGE?
-quantOrSdPropValues = c(0,  0.5, 1)#c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
 	
-#quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1)#c(0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1) # 
+quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1)
 
 errMeasureVect=c("mae", "rmse", "Maxae", "maeCert", "rmseCert", "MaxaeCert", 
 	"maeUncert", "rmseUncert", "MaxaeUncert") #maeCert #maeUncert, ...
@@ -109,6 +105,10 @@ for(repIdx in repVect){
 	if(realData){
 		n = nrow(doDatOut)
 		p = ncol(doDatOut)-1
+	}
+	if(p+1>numImput){
+		numImput = p+1
+		cat("Increasing numImput to total number of variables\n")
 	}
 	if(givenUp)
 		stop("Couldn't generate data partitions containing at least one missing point and one non-missing point")
@@ -139,7 +139,11 @@ if(is.logical(doMCAR)){
 }
 
 fileNameRoot = paste0(fileNameRoot, "MissObs", missingObsProp, "MissVar", missingVarProp, "MissMech", missMechString, "Meth", method)
-
+if(!realData){
+	fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq, "N", n, "P", p)
+} else{
+	fileNameRoot = paste0(fileNameRoot, "N", nSubSelect)
+}
 resultsFolderName = paste0(fileNameRoot, "Date", currDate)
 system(paste("mkdir", resultsFolderName))
 system(paste("cp *.R *sh", resultsFolderName))
@@ -159,11 +163,7 @@ write.table(progressOut, quote=F, row.names=F, col.names=F, append=T, file=progr
 cnt = 1
 				
 
-if(!realData){
-	fileNameRoot = paste0(fileNameRoot, "Cor", corVal, "Rsq", theoRsq, "N", n, "P", p)
-} else{
-	fileNameRoot = paste0(fileNameRoot, "N", nSubSelect)
-}
+
 
 testRes = list()
 numFailedImputReps = 0
