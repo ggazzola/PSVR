@@ -30,7 +30,7 @@ corVal = 0.5
 
 
 maxGenerateDataAttempts = 20
-repVect=1 # ######PAPERCHANGE?       MUST DO MORE REPEATS, the results don't seem stable
+repVect=1:10 # ######PAPERCHANGE?       MUST DO MORE REPEATS, the results don't seem stable
 numFolds = 5#### #####PAPERCHANGE?
 scaleData = T
 method = "pmm" #########################################################!!!!!!!!!!!!!!!!!!!!! pmm, #norm, cart, rf
@@ -57,14 +57,14 @@ if(!realData){
 	stopifnot(injectMissingness)
 } else{
 	#"Automobile.RData" # kept numerical variables, removed 4 obs with NA Y; has natural NAs
-	#Boston.RData --boston corrected: kept numerical variables (removed boolean); has no natural NAs
+	#Boston.RData --boston (uncorrected): removed CHAS variable; has no natural NAs
 	#Communities.RData -- kept all; has natural NAs -- seems like imputations with pmm always fail
 	#Ozone.RData -- removed V2, V3 (day 1-31, day of the week Mon-Sun); removed few observations with missing Y
 	#Mammalsleep -- removed 'species' (useless factor with n levels), used 'bwt' as output (mammalsleep in mice)
 	#Wpbc -- removed V1, V2, V3, made original V3 output; removed 4 observations with missing output
 	#Dutch -- removed 'reg' (factor); 'gen', 'phb' (ordered factors) converted to numeric;used age (only one with no NAs) as output (boys in mice) 
 	nSubSelect = Inf
-	realDataFileName = "Communities.RData" # 
+	realDataFileName = "Ozone.RData" # 
 	corVal = "irrelevant"
 	theoRsq = "irrelevant"
 	if(realDataFileName%in%c("Communities.RData", "Ozone.RData", "Automobile.RData", "Mammalsleep.RData", "Dutch.RData"))
@@ -94,7 +94,7 @@ quantOrSdPropValues = c(0, 0.0001, 0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1)
 
 errMeasureVect=c("mae", "rmse", "Maxae", "maeCert", "rmseCert", "MaxaeCert", 
 	"maeUncert", "rmseUncert", "MaxaeUncert") #maeCert #maeUncert, ...
-approachVect = c("doPCbb")#, "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant")  ####################
+approachVect = c("doPCbb", "doMedian", "doNoMiss", "doSquarebbSd", "doSquarebbQuant")  ####################
 
 
 
