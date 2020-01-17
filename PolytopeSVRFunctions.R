@@ -197,6 +197,8 @@ DoMiss = function(dat, missingY, missingObsProp, missingVarProp, doMCAR = T){
 		for(i in 1:n){
 			probVect[i] = exp(datScaled[i,whichNonMissingVarsMat[i,]] %*% VectToMat(betaMat[i, ], F)+resAlpha)/
 				(1+exp(datScaled[i,whichNonMissingVarsMat[i,]]%*% VectToMat(betaMat[i, ], F)+resAlpha)) 
+			if(is.nan(probVect[i]))
+				probVect[i] = 0	
 		}
 			
 		for(i in 1:n)
